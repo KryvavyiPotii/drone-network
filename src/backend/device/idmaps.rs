@@ -75,7 +75,7 @@ impl IdToDeviceMap {
     }
 
     #[must_use]
-    pub fn tasks(&self) -> IdToTaskMap {
+    pub fn task_map(&self) -> IdToTaskMap {
         self.0
             .iter()
             .map(|(device_id, device)| (*device_id, *device.task()))

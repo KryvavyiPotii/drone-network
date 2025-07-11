@@ -71,6 +71,8 @@ impl<const N: usize> From<[ScenarioEntry; N]> for Scenario {
 
 #[cfg(test)]
 mod tests {
+    use crate::task::TaskType;
+    
     use super::*;
 
 
@@ -78,10 +80,15 @@ mod tests {
 
 
     fn entries() -> Vec<ScenarioEntry> {
+        let undefined_task = Task::new(
+            TaskType::Undefined,
+            None
+        );
+
         vec![
-            (25, SOME_DEVICE_ID, Task::Undefined),
-            (5, SOME_DEVICE_ID, Task::Undefined),
-            (10, SOME_DEVICE_ID, Task::Undefined),
+            (25, SOME_DEVICE_ID, undefined_task),
+            (5, SOME_DEVICE_ID, undefined_task),
+            (10, SOME_DEVICE_ID, undefined_task),
         ]
     }
 

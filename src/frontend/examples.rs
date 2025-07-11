@@ -11,7 +11,7 @@ use crate::backend::networkmodel::attack::{AttackType, AttackerDevice};
 use crate::backend::signal::{
     SignalLevel, GPS_L1_FREQUENCY, GREEN_SIGNAL_LEVEL, RED_SIGNAL_LEVEL
 };
-use crate::backend::task::{Scenario, Task};
+use crate::backend::task::{Scenario, Task, TaskType};
 
 use super::{MALWARE_INFECTION_DELAY, MALWARE_SPREAD_DELAY};
 use super::cli::GeneralConfig;
@@ -37,13 +37,27 @@ const COMMAND_CENTER_POSITION: Point3D = Point3D { x: 200.0, y: 100.0, z: 0.0 };
 
 
 fn attack_scenario() -> Scenario {
-    Scenario::from([(0, BROADCAST_ID, Task::Attack(DRONE_DESTINATION))])
+    let attack_task = Task::new(
+        TaskType::Attack,
+        Some(DRONE_DESTINATION)
+    );
+
+    Scenario::from([(0, BROADCAST_ID, attack_task)])
 }
 
 fn reposition_scenario() -> Scenario {
-    let task1 = Task::Attack(DRONE_DESTINATION);
-    let task2 = Task::Attack(Point3D::new(0.0, 0.0, 150.0));
-    let task3 = Task::Attack(Point3D::new(0.0, 150.0, 150.0));
+    let task1 = Task::new(
+        TaskType::Reposition,
+        Some(DRONE_DESTINATION)
+    );
+    let task2 = Task::new(
+        TaskType::Reposition,
+        Some(Point3D::new(0.0, 0.0, 150.0))
+    );
+    let task3 = Task::new(
+        TaskType::Reposition,
+        Some(Point3D::new(0.0, 150.0, 150.0))
+    );
     let task4 = task1;
 
     Scenario::from([
@@ -82,10 +96,10 @@ fn indicator_malware() -> Malware {
 
 #[derive(Clone, Copy)]
 pub enum Example {
-    CommandDelays,
     GPSEWD,
     GPSSpoofing,
     MalwareInfection,
+    Movement,
     SignalLossResponse,
 }
 
@@ -119,10 +133,10 @@ impl Example {
         );
 
         let example_function = match self {
-            Self::CommandDelays      => command_delays,
             Self::GPSEWD             => gps_only,
             Self::GPSSpoofing        => gps_spoofing,
             Self::MalwareInfection   => malware_infection,
+            Self::Movement           => movement,
             Self::SignalLossResponse => signal_loss_response,
         };
 
@@ -322,20 +336,20 @@ fn gps_only(
         topology, 
         "gps_only"
     );
-    let drone_colorings = vec![DeviceColoring::SingleColor(0, 0, 0)]; 
-    let camera_angle    = CameraAngle::new(0.15, 0.5);
-    let renderer        = PlottersRenderer::new(
+    let drone_coloring = DeviceColoring::SingleColor(0, 0, 0); 
+    let camera_angle   = CameraAngle::new(0.15, 0.5);
+    let renderer       = PlottersRenderer::new(
         &output_filename,
         general_config.plot_caption(),
         general_config.plot_resolution(),
         Axes3DRanges::default(),
-        &drone_colorings,
+        drone_coloring,
         camera_angle
     );
 
     let mut model_player = ModelPlayer::new(
         general_config.output_directory(),
-        vec![drone_network],
+        drone_network,
         renderer,
         general_config.simulation_time(),
     );
@@ -343,7 +357,7 @@ fn gps_only(
     model_player.play();
 }
 
-fn command_delays(
+fn movement(
     general_config: &GeneralConfig,
     trx_system_type: TRXSystemType,
     topology: Topology,
@@ -377,19 +391,6 @@ fn command_delays(
     ); 
     devices.insert(0, command_center);
     
-    let mut drone_networks = Vec::new();
-
-    if general_config.display_delayless_network() {
-        let delayless_drone_network = NetworkModelBuilder::new()
-            .set_command_center_id(command_center_id)
-            .set_device_map(IdToDeviceMap::from(devices.as_slice()))
-            .set_gps(default_gps(trx_system_type))
-            .set_topology(topology)
-            .set_scenario(reposition_scenario())
-            .build();
-
-        drone_networks.push(delayless_drone_network);
-    }
     let drone_network = NetworkModelBuilder::new()
         .set_command_center_id(command_center_id)
         .set_device_map(IdToDeviceMap::from(devices.as_slice()))
@@ -398,35 +399,26 @@ fn command_delays(
         .set_scenario(reposition_scenario())
         .set_delay_multiplier(general_config.delay_multiplier())
         .build();
-    
-    drone_networks.insert(0, drone_network);
 
     let output_filename = derive_filename(
         trx_system_type,
         topology, 
-        "command_delay"
+        "movement"
     );
-    let drone_colorings = if general_config.display_delayless_network() {
-        vec![
-            DeviceColoring::SingleColor(0, 0, 0),
-            DeviceColoring::SingleColor(255, 0, 0)
-        ]
-    } else {
-        vec![DeviceColoring::SingleColor(0, 0, 0)]
-    };
-    let camera_angle    = CameraAngle::new(0.15, 0.5);
-    let renderer        = PlottersRenderer::new(
+    let drone_coloring = DeviceColoring::SingleColor(0, 0, 0);
+    let camera_angle   = CameraAngle::new(0.15, 0.5);
+    let renderer       = PlottersRenderer::new(
         &output_filename,
         general_config.plot_caption(),
         general_config.plot_resolution(),
         Axes3DRanges::default(),
-        &drone_colorings,
+        drone_coloring,
         camera_angle
     );
 
     let mut model_player = ModelPlayer::new(
         general_config.output_directory(),
-        drone_networks,
+        drone_network,
         renderer,
         general_config.simulation_time(),
     );
@@ -500,21 +492,21 @@ fn gps_spoofing(
         topology, 
         "gps_spoofing"
     );
-    let axes_ranges     = Axes3DRanges::new(0.0..200.0, 0.0..0.0, 0.0..200.0);
-    let drone_colorings = vec![DeviceColoring::SingleColor(0, 0, 0)]; 
-    let camera_angle    = CameraAngle::new(1.57, 1.57);
-    let renderer        = PlottersRenderer::new(
+    let axes_ranges    = Axes3DRanges::new(0.0..200.0, 0.0..0.0, 0.0..200.0);
+    let drone_coloring = DeviceColoring::SingleColor(0, 0, 0); 
+    let camera_angle   = CameraAngle::new(1.57, 1.57);
+    let renderer       = PlottersRenderer::new(
         &output_filename,
         general_config.plot_caption(),
         general_config.plot_resolution(),
         axes_ranges,
-        &drone_colorings,
+        drone_coloring,
         camera_angle,
     );
 
     let mut model_player = ModelPlayer::new(
         general_config.output_directory(),
-        vec![drone_network],
+        drone_network,
         renderer,
         general_config.simulation_time(),
     );
@@ -608,24 +600,24 @@ fn malware_infection(
         topology, 
         text,
     );
-    let drone_colorings = match malware.malware_type() {
-        MalwareType::DoS(_)    => vec![DeviceColoring::SingleColor(0, 0, 0)],
-        MalwareType::Indicator => vec![DeviceColoring::Infection],
+    let drone_coloring = match malware.malware_type() {
+        MalwareType::DoS(_)    => DeviceColoring::SingleColor(0, 0, 0),
+        MalwareType::Indicator => DeviceColoring::Infection,
     };
-    let axes_ranges     = Axes3DRanges::new(0.0..100.0, 0.0..0.0, 0.0..100.0);
-    let camera_angle    = CameraAngle::new(1.57, 1.57);
-    let renderer        = PlottersRenderer::new(
+    let axes_ranges    = Axes3DRanges::new(0.0..100.0, 0.0..0.0, 0.0..100.0);
+    let camera_angle   = CameraAngle::new(1.57, 1.57);
+    let renderer       = PlottersRenderer::new(
         &output_filename,
         general_config.plot_caption(),
         general_config.plot_resolution(),
         axes_ranges,
-        &drone_colorings,
+        drone_coloring,
         camera_angle
     );
 
     let mut model_player = ModelPlayer::new(
         general_config.output_directory(),
-        vec![drone_network],
+        drone_network,
         renderer,
         general_config.simulation_time(),
     );
@@ -657,21 +649,21 @@ fn malware_propagation(
         topology, 
         "mal_indicator",
     );
-    let drone_colorings = vec![DeviceColoring::Infection]; 
-    let axes_ranges     = Axes3DRanges::new(0.0..100.0, 0.0..0.0, 0.0..100.0);
-    let camera_angle    = CameraAngle::new(1.57, 1.57);
-    let renderer        = PlottersRenderer::new(
+    let drone_coloring = DeviceColoring::Infection; 
+    let axes_ranges    = Axes3DRanges::new(0.0..100.0, 0.0..0.0, 0.0..100.0);
+    let camera_angle   = CameraAngle::new(1.57, 1.57);
+    let renderer       = PlottersRenderer::new(
         &output_filename,
         general_config.plot_caption(),
         general_config.plot_resolution(),
         axes_ranges,
-        &drone_colorings,
+        drone_coloring,
         camera_angle
     );
 
     let mut model_player = ModelPlayer::new(
         general_config.output_directory(),
-        vec![drone_network],
+        drone_network,
         renderer,
         general_config.simulation_time(),
     );
@@ -778,21 +770,21 @@ fn signal_loss_response(
         topology,
         "signal_loss_response"
     ); 
-    let axes_ranges     = Axes3DRanges::new(0.0..100.0, 0.0..100.0, 0.0..100.0);
-    let drone_colorings = vec![DeviceColoring::SingleColor(0, 0, 0)]; 
-    let camera_angle    = CameraAngle::new(0.15, 0.5);
-    let renderer        = PlottersRenderer::new(
+    let axes_ranges    = Axes3DRanges::new(0.0..100.0, 0.0..100.0, 0.0..100.0);
+    let drone_coloring = DeviceColoring::SingleColor(0, 0, 0); 
+    let camera_angle   = CameraAngle::new(0.15, 0.5);
+    let renderer       = PlottersRenderer::new(
         &output_filename,
         general_config.plot_caption(),
         general_config.plot_resolution(),
         axes_ranges,
-        &drone_colorings,
+        drone_coloring,
         camera_angle,
     );
     
     let mut model_player = ModelPlayer::new(
         general_config.output_directory(),
-        vec![drone_network],
+        drone_network,
         renderer,
         general_config.simulation_time(),
     );

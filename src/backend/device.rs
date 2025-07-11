@@ -1,5 +1,6 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use log::info;
 use serde::Serialize;
 use thiserror::Error;
 
@@ -10,9 +11,10 @@ use super::mathphysics::{
     Millisecond, Point3D, Position, PowerUnit
 };
 use super::signal::{
-    Data, FreqToLevelMap, Signal, SignalArea, SignalLevel, GPS_L1_FREQUENCY
+    Data, FreqToLevelMap, Signal, SignalArea, SignalLevel, BLACK_SIGNAL_LEVEL, 
+    GPS_L1_FREQUENCY
 };
-use super::task::Task;
+use super::task::{Task, TaskType};
 
 use systems::{
     MovementSystem, PowerSystem, PowerSystemError, TRXSystem, TRXSystemError
@@ -347,6 +349,8 @@ impl Device {
             signal_level,
         );
 
+        self.info_created_signal_for(&receiver.id());
+
         Ok(signal)
     }
     
@@ -370,7 +374,15 @@ impl Device {
             return Err(TRXSystemError::WrongSignalDestination);
         }
 
-        self.trx_system.receive_signal(signal, time) 
+        self.trx_system
+            .receive_signal(signal, time)
+            .inspect(|_| 
+                info!(
+                    "Current time: {}, Id: {}, Received message",
+                    self.current_time,
+                    self.id
+                )
+            )
     }
 
     /// # Errors
@@ -378,6 +390,8 @@ impl Device {
     /// Will return `Err` if all power is consumed or the movement system is
     /// disabled.
     pub fn update(&mut self) -> Result<(), DeviceError> {
+        self.info_control_signal_level();
+
         self.try_consume_power(PASSIVE_POWER_CONSUMPTION)?;
         self.handle_malware_infections();
         self.process_received_signals()?;
@@ -424,6 +438,7 @@ impl Device {
                 *malware, 
                 (self.current_time, InfectionState::Infected)
             );
+            self.info_infected();
         }
     }
     
@@ -449,20 +464,15 @@ impl Device {
     fn process_task(&mut self) {
         let gps_is_connected = self.receives_signal_on(&GPS_L1_FREQUENCY); 
 
-        match self.task {
-            Task::Attack(destination) 
-                | Task::Reconnect(destination)
-                | Task::Reposition(destination)
-            if gps_is_connected  => {
-                self.movement_system.set_direction(destination);
-                self.try_reach_task();
+        match self.task.destination() {
+            Some(destination) if gps_is_connected  => {
+                self.movement_system.set_direction(*destination);
+                self.try_complete_task();
             },
-            Task::Attack(_) 
-                | Task::Reposition(_) 
-                | Task::Reconnect(_) => {
+            Some(_) => {
                 self.set_horizontal_velocity();
             },
-            Task::Undefined          => ()
+            _ => ()
         }
     }
     
@@ -483,16 +493,25 @@ impl Device {
                 upward_point.z += 1.0;
 
                 self.movement_system.set_direction(upward_point);
-                self.task = Task::Reconnect(upward_point);
+                self.task = Task::new(
+                    TaskType::Reconnect, 
+                    Some(upward_point)
+                );
             },
             SignalLossResponse::Hover                    => {
-                self.task = Task::Reconnect(self.real_position_in_meters);
+                self.task = Task::new(
+                    TaskType::Reconnect, 
+                    Some(self.real_position_in_meters)
+                );
                 self.process_task();
             },
             SignalLossResponse::Ignore                   =>
                 self.process_task(),
             SignalLossResponse::ReturnToHome(home_point) => {
-                self.task = Task::Reconnect(home_point);
+                self.task = Task::new(
+                    TaskType::Reconnect,
+                    Some(home_point)
+                );
                 self.process_task();
             },
             SignalLossResponse::Shutdown                 =>
@@ -518,19 +537,26 @@ impl Device {
 
     // Device can check if it has reached the task only if it knows
     // its current position (if it has GPS connection).
-    fn try_reach_task(&mut self) {
-        match self.task {
-            Task::Attack(destination) if self.at_destination(
-                &destination
-            ) => self.selfdestruction(),
-            Task::Reposition(destination) if self.at_destination(
-                &destination
-            ) => self.task = Task::Undefined,
+    fn try_complete_task(&mut self) {
+        let Some(destination) = self.task.destination() else {
+            return;
+        };
+
+        match self.task.task_type() {
+            TaskType::Attack if self.at_destination(destination)     => { 
+                self.info_reached_destination();
+                self.selfdestruction();
+            },
+            TaskType::Reposition if self.at_destination(destination) => { 
+                self.info_reached_destination();
+                self.task = Task::default();
+            },
             _ => (),
         }
     }
 
-    fn at_destination(&self, destination: &Point3D) -> bool {
+    #[must_use]
+    pub fn at_destination(&self, destination: &Point3D) -> bool {
         self.distance_to(destination) <= DESTINATION_RADIUS 
     }
 
@@ -553,6 +579,43 @@ impl Device {
                 MalwareType::Indicator       => (),
             }
         }
+    }
+
+
+    fn info_control_signal_level(&self) {
+        info!(
+            "Current time: {}, Id: {}, Control signal level: {}",
+            self.current_time,
+            self.id,
+            self.trx_system
+                .received_signal_on(&CONTROL_FREQUENCY)
+                .map_or(BLACK_SIGNAL_LEVEL, |(_, signal)| *signal.level())
+        );
+    }
+
+    fn info_created_signal_for(&self, receiver_id: &DeviceId) {
+        info!(
+            "Current time: {}, Id: {}, Created signal for {}",
+            self.current_time,
+            self.id,
+            receiver_id
+        );
+    }
+
+    fn info_infected(&self) {
+        info!(
+            "Current time: {}, Id: {}, Device was infected",
+            self.current_time,
+            self.id,
+        );
+    }
+
+    fn info_reached_destination(&self) {
+        info!(
+            "Current time: {}, Id: {}, Reached destination",
+            self.current_time,
+            self.id,
+        );
     }
 }
 
@@ -663,7 +726,10 @@ mod tests {
 
     #[test]
     fn device_selfdestructs_after_consuming_all_power() {
-        let task  = Task::Attack(Point3D::new(5.0, 5.0, 5.0));
+        let task  = Task::new(
+            TaskType::Attack,
+            Some(Point3D::new(5.0, 5.0, 5.0))
+        );
         let power = PASSIVE_POWER_CONSUMPTION + MOVEMENT_POWER_CONSUMPTION;
         
         let power_system    = PowerSystem::build(power, power)
@@ -702,7 +768,10 @@ mod tests {
     fn ascending_on_signal_loss() {
         let signal_loss_response = SignalLossResponse::Ascend;
         let destination_point = Point3D::new(5.0, 5.0, 5.0);
-        let task = Task::Reposition(destination_point);
+        let task = Task::new(
+            TaskType::Reposition,
+            Some(destination_point)
+        );
         
         let mut device_without_signal = DeviceBuilder::new()
             .set_task(task)
@@ -743,7 +812,10 @@ mod tests {
     fn hovering_on_signal_loss() {
         let signal_loss_response = SignalLossResponse::Hover;
         let destination_point = Point3D::new(5.0, 5.0, 5.0);
-        let task = Task::Reposition(destination_point);
+        let task = Task::new(
+            TaskType::Reposition,
+            Some(destination_point)
+        );
         
         let mut device_without_signal = DeviceBuilder::new()
             .set_task(task)
@@ -796,7 +868,10 @@ mod tests {
             MAX_DRONE_SPEED / 3.0, 
             MAX_DRONE_SPEED / 3.0
         );
-        let task = Task::Reposition(destination_point);
+        let task = Task::new(
+            TaskType::Reposition,
+            Some(destination_point)
+        );
         
         let mut device_without_signal = DeviceBuilder::new()
             .set_task(task)
@@ -830,7 +905,10 @@ mod tests {
     fn shutting_down_on_signal_loss() {
         let signal_loss_response = SignalLossResponse::Shutdown;
         let destination_point = Point3D::new(5.0, 5.0, 5.0);
-        let task = Task::Reposition(destination_point);
+        let task = Task::new(
+            TaskType::Reposition,
+            Some(destination_point)
+        );
         
         let mut device_without_signal = DeviceBuilder::new()
             .set_task(task)
@@ -893,7 +971,10 @@ mod tests {
     #[test]
     fn device_movement_without_gps() {
         let destination_point = Point3D::new(MAX_DRONE_SPEED, 0.0, 0.0);
-        let task              = Task::Reposition(destination_point);
+        let task = Task::new(
+            TaskType::Reposition,
+            Some(destination_point)
+        );
         
         let mut device_without_gps = DeviceBuilder::new()
             .set_task(task)
@@ -918,7 +999,10 @@ mod tests {
     #[test]
     fn device_reaching_destination() {
         let destination_point = Point3D::new(MAX_DRONE_SPEED, 0.0, 0.0);
-        let task              = Task::Reposition(destination_point);
+        let task = Task::new(
+            TaskType::Reposition,
+            Some(destination_point)
+        );
         let trx_system = TRXSystem::new( 
             TRXSystemType::Strength,
             TXModule::default(), 
@@ -952,7 +1036,10 @@ mod tests {
 
     #[test]
     fn device_selfdestruction() {
-        let task            = Task::Attack(Point3D::new(5.0, 5.0, 5.0));
+        let task            = Task::new(
+            TaskType::Attack,
+            Some(Point3D::new(5.0, 5.0, 5.0))
+        );
         let power_system    = device_power_system();
         let movement_system = drone_movement_system();
         let trx_system      = drone_green_trx_system();
@@ -976,7 +1063,10 @@ mod tests {
 
     #[test]
     fn receive_and_process_correct_set_task_signal() {
-        let task = Task::Attack(Point3D::new(5.0, 0.0, 0.0));
+        let task = Task::new(
+            TaskType::Attack,
+            Some(Point3D::new(5.0, 0.0, 0.0))
+        );
 
         let mut device = DeviceBuilder::new()
             .set_power_system(device_power_system())
@@ -1026,7 +1116,10 @@ mod tests {
 
     #[test]
     fn receive_and_process_broadcast_signal() {
-        let task = Task::Attack(Point3D::new(5.0, 0.0, 0.0));
+        let task = Task::new(
+            TaskType::Attack,
+            Some(Point3D::new(5.0, 0.0, 0.0))
+        );
         
         let mut device = DeviceBuilder::new()
             .set_power_system(device_power_system())
@@ -1048,6 +1141,7 @@ mod tests {
 
     #[test]
     fn not_receive_signal_with_wrong_destination() {
+        let undefined_task = Task::default();
         let mut device = DeviceBuilder::new()
             .set_power_system(device_power_system())
             .set_trx_system(drone_green_trx_system())
@@ -1056,7 +1150,7 @@ mod tests {
         let signal = Signal::new(
             SOME_DEVICE_ID,
             device.id() + 1,
-            Some(Data::SetTask(Task::Undefined)), 
+            Some(Data::SetTask(undefined_task)), 
             CONTROL_FREQUENCY, 
             RED_SIGNAL_LEVEL, 
         );

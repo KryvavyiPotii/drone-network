@@ -3,12 +3,10 @@ use plotters::coord::Shift;
 use plotters::coord::ranged3d::Cartesian3d;
 use plotters::coord::types::RangedCoordf64;
 use plotters::prelude::*;
-use thiserror::Error;
 
 use crate::backend::ITERATION_TIME;
 use crate::backend::mathphysics::Point3D;
 use crate::backend::networkmodel::NetworkModel;
-use crate::backend::networkmodel::attack::AttackerDevice;
 use crate::backend::task::Task;
 
 use primitives::{
@@ -38,37 +36,25 @@ type PlottersChartContext<'a> = ChartContext<
 const FONT: &str = "sans-serif";
 
 
-fn network_models_destinations(
-    network_models: &[NetworkModel]
-) -> Vec<Point3D> {
+fn network_model_destinations(network_model: &NetworkModel) -> Vec<Point3D> {
     let mut destinations = Vec::new();
 
-    for network_model in network_models {
-        let task_vec: Vec<Task> = network_model
-            .device_tasks()
-            .values()
-            .copied()
-            .collect();
+    let task_vec: Vec<Task> = network_model
+        .device_map()
+        .task_map()
+        .values()
+        .copied()
+        .collect();
 
-        for task in task_vec {
-            match task {
-                Task::Attack(destination) 
-                    | Task::Reconnect(destination)
-                    | Task::Reposition(destination) => 
-                    destinations.push(destination),
-                Task::Undefined => (),
-            }
-        }
+    for task in task_vec {
+        let Some(destination) = task.destination() else {
+            continue;
+        };
+
+        destinations.push(*destination);
     }
 
     destinations
-}
-
-
-#[derive(Debug, Error)]
-pub enum RenderError {
-    #[error("Color count does not match network count")]
-    NotMatchingColorNumber
 }
 
 
@@ -79,7 +65,7 @@ pub struct PlottersRenderer<'a> {
     font_size: Pixel,
     axes_ranges: Axes3DRanges,
     camera_angle: CameraAngle,
-    device_colorings: Vec<DeviceColoring>,
+    device_coloring: DeviceColoring,
     area: DrawingArea<BitMapBackend<'a>, Shift>, 
 }
 
@@ -93,7 +79,7 @@ impl<'a> PlottersRenderer<'a> {
         caption: &str,
         plot_resolution: PlotResolution,
         axes_ranges: Axes3DRanges,
-        device_colorings: &[DeviceColoring],
+        device_coloring: DeviceColoring,
         camera_angle: CameraAngle,
     ) -> Self {
         let font_size = font_size(plot_resolution);
@@ -114,7 +100,7 @@ impl<'a> PlottersRenderer<'a> {
             font_size,
             axes_ranges,
             camera_angle,
-            device_colorings: device_colorings.to_vec(),
+            device_coloring,
             area,
         }
     }
@@ -124,22 +110,13 @@ impl<'a> PlottersRenderer<'a> {
         self.output_filename.clone()
     }
 
-    /// # Errors
-    ///
-    /// Will return `Err` if the number of networks does not match the number of
-    /// colors.
-    /// 
     /// # Panics
     ///
     /// Will panic if an error occurs during drawing.
     pub fn render(
         &mut self, 
-        network_models: &[NetworkModel]
-    ) -> Result<(), RenderError> {
-        if self.device_colorings.len() != network_models.len() {
-            return Err(RenderError::NotMatchingColorNumber);
-        }
-        
+        network_model: &NetworkModel
+    ) {
         self.area
             .fill(&WHITE)
             .expect("Failed to fill an area");
@@ -147,13 +124,11 @@ impl<'a> PlottersRenderer<'a> {
         let mut chart_context = self.chart_context();
 
         self.draw_chart(&mut chart_context);
-        self.draw_network_models(network_models, &mut chart_context);
+        self.draw_network_model(network_model, &mut chart_context);
 
         self.area
             .present()
             .expect("Failed to finalize drawing");
-
-        Ok(())
     }
     
     fn chart_context(&self) -> PlottersChartContext<'a> {
@@ -176,23 +151,15 @@ impl<'a> PlottersRenderer<'a> {
             .expect("Failed to create a chart")
     }
 
-    fn draw_network_models(
+    fn draw_network_model(
         &self,
-        network_models: &[NetworkModel],
+        network_model: &NetworkModel,
         chart_context: &mut PlottersChartContext<'a>
     ) {
-        let destinations = network_models_destinations(network_models);
-
-        self.draw_destinations(&destinations, chart_context);
-        self.draw_command_devices(network_models, chart_context);
-        self.draw_devices(network_models, chart_context);
-        
-        for network_model in network_models {
-            self.draw_attacker_devices(
-                network_model.attacker_devices(), 
-                chart_context
-            );
-        }
+        self.draw_destinations(network_model, chart_context);
+        self.draw_command_device(network_model, chart_context);
+        self.draw_devices(network_model, chart_context);
+        self.draw_attacker_devices(network_model, chart_context);
     }
 
     fn draw_chart(&self, chart_context: &mut PlottersChartContext<'a>) {
@@ -211,9 +178,10 @@ impl<'a> PlottersRenderer<'a> {
     
     fn draw_destinations(
         &self, 
-        destinations: &[Point3D],
+        network_model: &NetworkModel,
         chart_context: &mut PlottersChartContext<'a>
     ) {
+        let destinations = network_model_destinations(network_model);
         let destination_primitives = destinations
             .iter()
             .map(|destination| 
@@ -228,57 +196,52 @@ impl<'a> PlottersRenderer<'a> {
             .expect("Failed to draw destination points");
     }
     
-    fn draw_command_devices(
+    fn draw_command_device(
         &self, 
-        network_models: &[NetworkModel],
+        network_model: &NetworkModel,
         chart_context: &mut PlottersChartContext<'a>
     ) {
-        let network_model_primitives = network_models
-            .iter()
-            .filter_map(|network_model| {
-                let command_device = network_model.command_device()?;
-                let primitive = command_device_primitive(
-                    command_device, 
-                    self.plot_resolution
-                );
-
-                Some(primitive)
-            });
+        let Some(command_device) = network_model.command_device() else {
+            return;
+        };
+        let primitive = command_device_primitive(
+            command_device, 
+            self.plot_resolution
+        );
 
         chart_context
-            .draw_series(network_model_primitives)
-            .expect("Failed to draw destination points");
+            .draw_series([primitive])
+            .expect("Failed to draw command device");
     }
 
     fn draw_devices(
         &self, 
-        network_models: &[NetworkModel],
+        network_model: &NetworkModel,
         chart_context: &mut PlottersChartContext<'a>
     ) {
-        for (network_model, coloring) in network_models
-            .iter()
-            .zip(self.device_colorings.iter())
-        {
-            let device_primitives = network_model
-                .device_iter()
-                .map(|device|
-                    device_primitive(
-                        device, 
-                        *coloring, 
-                        self.plot_resolution
-                    )
-                );
+        let device_primitives = network_model
+            .device_map()
+            .devices()
+            .map(|device|
+                device_primitive(
+                    device, 
+                    self.device_coloring, 
+                    self.plot_resolution
+                )
+            );
 
-            chart_context.draw_series(device_primitives).unwrap();
-        }
+        chart_context
+            .draw_series(device_primitives)
+            .expect("Failed to draw devices");
     }
 
     fn draw_attacker_devices(
         &self, 
-        attacker_devices: &[AttackerDevice],
+        network_model: &NetworkModel,
         chart_context: &mut PlottersChartContext<'a>
     ) {
-        let attacker_device_primitives = attacker_devices
+        let attacker_device_primitives = network_model
+            .attacker_devices()
             .iter()
             .flat_map(|attacker_device| {
                 attacker_device_primitive_on_all_frequencies(
@@ -289,6 +252,6 @@ impl<'a> PlottersRenderer<'a> {
 
         chart_context
             .draw_series(attacker_device_primitives)
-            .expect("Failed to draw control EWDs");
+            .expect("Failed to draw attacker devices");
     }
 }

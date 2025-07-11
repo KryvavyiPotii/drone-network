@@ -14,7 +14,6 @@ use super::{GeneralConfig, ModelConfig, ModelPlayerConfig, RenderConfig};
 
 
 pub const ARG_DELAY_MULTIPLIER: &str = "delay multiplier";
-pub const ARG_DISPLAY_DELAYLESS_NETWORK: &str   = "display delayless network";
 pub const ARG_DISPLAY_MALWARE_PROPAGATION: &str = "display malware propagation";
 pub const ARG_DRONE_COUNT: &str      = "drone count";
 pub const ARG_EXPERIMENT_TITLE: &str = "experiment title";
@@ -27,11 +26,11 @@ pub const ARG_PLOT_WIDTH: &str       = "plot width";
 pub const ARG_SIM_TIME: &str         = "simulation time";
 pub const ARG_TRX_SYSTEM: &str       = "trx system";
 
-pub const EXP_COMMAND_DELAYS: &str    = "delays";
 pub const EXP_GPS_ONLY: &str          = "gpsewd";
 pub const EXP_GPS_SPOOFING: &str      = "gpsspoof";
-pub const EXP_SIGNAL_LOSS: &str       = "signalloss";
 pub const EXP_MALWARE_INFECTION: &str = "malware";
+pub const EXP_MOVEMENT: &str          = "move";
+pub const EXP_SIGNAL_LOSS: &str       = "signalloss";
 
 pub const MAL_DOS: &str       = "dos";
 pub const MAL_INDICATOR: &str = "indicator";
@@ -60,10 +59,10 @@ pub fn handle_arguments(matches: &ArgMatches) {
     };
  
     let example = match experiment_title.as_str() {
-        EXP_COMMAND_DELAYS    => Example::CommandDelays,
         EXP_GPS_ONLY          => Example::GPSEWD,
         EXP_GPS_SPOOFING      => Example::GPSSpoofing,
         EXP_MALWARE_INFECTION => Example::MalwareInfection, 
+        EXP_MOVEMENT          => Example::Movement,
         EXP_SIGNAL_LOSS       => Example::SignalLossResponse,
         _ => return
     };
@@ -86,7 +85,6 @@ fn general_config(matches: &ArgMatches) -> GeneralConfig {
     let render_config = RenderConfig::new(
         plot_caption(matches), 
         plot_resolution(matches), 
-        display_delayless_network(matches), 
         display_malware_propagation(matches),
     );
     
@@ -181,12 +179,6 @@ fn simulation_time(matches: &ArgMatches) -> Millisecond {
 fn plot_caption(matches: &ArgMatches) -> &str {
     matches
         .get_one::<String>(ARG_PLOT_CAPTION)
-        .unwrap()
-}
-
-fn display_delayless_network(matches: &ArgMatches) -> bool {
-    *matches
-        .get_one::<bool>(ARG_DISPLAY_DELAYLESS_NETWORK)
         .unwrap()
 }
 

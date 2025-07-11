@@ -1,3 +1,4 @@
+use std::fmt;
 use std::ops;
 
 use impl_ops::{
@@ -14,6 +15,11 @@ use super::{
     MAX_YELLOW_SIGNAL_STRENGTH, SignalArea, SignalStrength, 
     SIGNAL_STRENGTH_SCALING, 
 };
+
+use inner::SignalLevelInner;
+
+
+mod inner;
 
 
 pub const BLACK_SIGNAL_LEVEL: SignalLevel  = 
@@ -196,40 +202,12 @@ impl From<SignalStrength> for SignalLevel {
     }
 }
 
-
-#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
-enum SignalLevelInner {
-    Black(SignalStrength),  // (almost) no signal
-    Red(SignalStrength),    // signal level is critically low
-    Yellow(SignalStrength), // signal level is decent
-    Green(SignalStrength)   // signal level is good
-}
-
-impl Default for SignalLevelInner {
-    fn default() -> Self {
-        Self::Black(MAX_BLACK_SIGNAL_STRENGTH)
+impl fmt::Display for SignalLevel {
+    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(f, "{}", self.0)
     }
 }
 
-impl From<f32> for SignalLevelInner {
-    fn from(value: f32) -> Self {
-        Self::from(SignalStrength::new(value))
-    }
-}
-
-impl From<SignalStrength> for SignalLevelInner {
-    fn from(signal_strength: SignalStrength) -> Self {
-        if signal_strength > MAX_YELLOW_SIGNAL_STRENGTH {
-            Self::Green(signal_strength)
-        } else if signal_strength > MAX_RED_SIGNAL_STRENGTH {
-            Self::Yellow(signal_strength)
-        } else if signal_strength > MAX_BLACK_SIGNAL_STRENGTH {
-            Self::Red(signal_strength)
-        } else {
-            Self::Black(signal_strength)
-        }
-    }
-}
 
 #[cfg(test)]
 mod tests {
@@ -390,22 +368,6 @@ mod tests {
     fn signal_level_comparison_within_different_colors() {
         assert!(YELLOW_SIGNAL_LEVEL < GREEN_SIGNAL_LEVEL);
         assert!(RED_SIGNAL_LEVEL >= BLACK_SIGNAL_LEVEL); 
-    }
-
-    #[test]
-    fn signal_level_color_from_strength() {
-        assert_eq!(
-            SignalLevelInner::from(-6.0),
-            SignalLevelInner::Black(SignalStrength::new(-6.0))
-        );
-        assert_eq!(
-            SignalLevelInner::from(0.1),
-            SignalLevelInner::Black(SignalStrength::new(0.1))
-        );
-        assert_eq!(
-            SignalLevelInner::from(MAX_YELLOW_SIGNAL_STRENGTH),
-            SignalLevelInner::Yellow(MAX_YELLOW_SIGNAL_STRENGTH)
-        );
     }
 
     #[test]

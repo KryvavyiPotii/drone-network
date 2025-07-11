@@ -107,6 +107,14 @@ impl TRXSystem {
     pub fn received_signals(&self) -> Vec<ReceivedSignal> {
         self.rx_module.received_signals()
     }
+    
+    #[must_use]
+    pub fn received_signal_on(
+        &self, 
+        frequency: &Megahertz
+    ) -> Option<&ReceivedSignal> {
+        self.rx_module.received_signal_on(frequency)
+    }
      
     /// # Errors
     ///

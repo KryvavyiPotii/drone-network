@@ -5,17 +5,44 @@ use crate::backend::mathphysics::{Megahertz, Millisecond};
 use crate::backend::signal::{FreqToLevelMap, Signal, SignalLevel};
 
 
+// The first element - time at which a signal was received.
+// The second element - the signal.
 pub type ReceivedSignal = (Millisecond, Signal);
+
+
+const RECEIVE_GREEN_SIGNAL: f64  = 0.95;
+const RECEIVE_YELLOW_SIGNAL: f64 = 0.70;
+const RECEIVE_RED_SIGNAL: f64    = 0.50;
+const RECEIVE_BLACK_SIGNAL: f64  = 0.10;
+
+
+fn signal_is_received(signal_level: &SignalLevel) -> bool {
+    rand::random_bool(
+        signal_receive_probability(signal_level)
+    )
+}
+
+fn signal_receive_probability(signal_level: &SignalLevel) -> f64 {
+    if signal_level.is_green() {
+        RECEIVE_GREEN_SIGNAL
+    } else if signal_level.is_yellow() {
+        RECEIVE_YELLOW_SIGNAL
+    } else if signal_level.is_red() {
+        RECEIVE_RED_SIGNAL
+    } else {
+        RECEIVE_BLACK_SIGNAL
+    }
+}
 
 
 #[derive(Debug, Error)]
 pub enum RXError {
-    #[error("Failed to receive signal with color signal level")]
-    FailedToReceiveSignal,
     #[error("RX module does not listen on signal's frequency")]
     NotListeningOnFrequency,
     #[error("Received signal is too strong to decode its data")]
     NoiseReceived,
+    #[error("Failed to receive signal")]
+    SignalNotReceived,
     #[error("RX module has already received stronger signal")]
     SignalTooWeak,
 }
@@ -79,6 +106,10 @@ impl RXModule {
             if current_signal.level() > signal.level() {
                 return Err(RXError::SignalTooWeak);
             }
+        }
+
+        if !signal_is_received(signal.level()) {
+            return Err(RXError::SignalNotReceived);
         }
 
         self.remove_current_received_signal_on(signal.frequency());
@@ -193,6 +224,8 @@ mod tests {
     
     #[test] 
     fn fail_to_receive_unknown_signal() {
+        assert_eq!(RECEIVE_YELLOW_SIGNAL, 1.0);
+
         let max_capacity  = YELLOW_SIGNAL_LEVEL;
         let mut rx_module = rx_module(max_capacity);
 
@@ -214,6 +247,8 @@ mod tests {
 
     #[test] 
     fn fail_to_receive_weak_signal_after_stronger_one() {
+        assert_eq!(RECEIVE_YELLOW_SIGNAL, 1.0);
+        
         let max_capacity  = YELLOW_SIGNAL_LEVEL;
         let mut rx_module = rx_module(max_capacity);
 
@@ -249,6 +284,8 @@ mod tests {
     
     #[test] 
     fn receive_too_strong_signal_but_view_it_as_noise() {
+        assert_eq!(RECEIVE_RED_SIGNAL, 1.0);
+        
         let max_capacity  = RED_SIGNAL_LEVEL;
         let mut rx_module = rx_module(max_capacity);
 

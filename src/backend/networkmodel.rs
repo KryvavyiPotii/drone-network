@@ -1,10 +1,9 @@
-use std::collections::hash_map::Values;
-
+use log::info;
 use serde::Serialize;
 
 use super::{CONTROL_FREQUENCY, ITERATION_TIME};
 use super::connections::{ConnectionGraph, Topology};
-use super::device::{Device, DeviceId, IdToDeviceMap, IdToTaskMap};
+use super::device::{Device, DeviceId, IdToDeviceMap};
 use super::malware::Malware;
 use super::mathphysics::Millisecond;
 use super::signal::{Data, SignalQueue};
@@ -148,11 +147,6 @@ impl NetworkModel {
     }
     
     #[must_use]
-    pub fn device_tasks(&self) -> IdToTaskMap {
-        self.device_map.tasks()
-    }
-    
-    #[must_use]
     pub fn command_device(&self) -> Option<&Device> {
         self.device_map.get(&self.command_device_id)
     }
@@ -163,16 +157,6 @@ impl NetworkModel {
     }
 
     #[must_use]
-    pub fn device_iter(&self) -> Values<'_, DeviceId, Device> {
-        self.device_map.devices() 
-    }
-    
-    #[must_use]
-    pub fn device_count(&self) -> usize {
-        self.device_map.len() 
-    }
-
-    #[must_use]
     pub fn attacker_devices(&self) -> &[AttackerDevice] {
         self.attacker_devices.as_slice()
     }   
@@ -180,6 +164,11 @@ impl NetworkModel {
     #[must_use]
     pub fn connections(&self) -> &ConnectionGraph {
         &self.connections
+    }
+
+    #[must_use]
+    pub fn signal_queue(&self) -> &SignalQueue {
+        &self.signal_queue
     }
 
     /// # Errors
@@ -316,9 +305,30 @@ impl NetworkModel {
     }
 
     fn set_initial_state(&mut self) {
+        self.info_device_ids(); 
+
         self.update_connections_graph();
         self.add_gps_signals_to_queue();
         self.add_scenario_signals_to_queue();
+    }
+
+
+    fn info_device_ids(&self) {
+        let attacker_device_ids: Vec<DeviceId> = self.attacker_devices
+            .iter()
+            .map(|attacker_device| attacker_device.device().id())
+            .collect();
+
+        info!(
+            "Command device id: {}, \
+            GPS id: {}, \
+            All attacker device ids: {:?}, \
+            All device ids: {:?}",
+            self.command_device_id,
+            self.gps.device().id(),
+            attacker_device_ids,
+            self.device_map.ids().collect::<Vec<&DeviceId>>()
+        )
     }
 }
 
