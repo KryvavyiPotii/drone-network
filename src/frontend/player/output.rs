@@ -22,7 +22,7 @@ pub fn write_iteration_data(
     let file_name = format!("{local_time}_{current_iteration_time}");
     let file_path = output_directory.join(file_name);
 
-    let json_data = if let Ok(data) = network_model.json() {
+    let json_data = if let Ok(data) = network_model.to_json() {
         data
     } else {
         ERR_SERIALIZATION.to_string()

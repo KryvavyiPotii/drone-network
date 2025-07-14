@@ -1,6 +1,6 @@
 use std::ops;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use derive_more::{MulAssign, DivAssign};
 use impl_ops::{
@@ -15,7 +15,8 @@ use super::Position;
 #[derive(
     Copy, Clone, 
     PartialEq, MulAssign, DivAssign, 
-    Debug, Default, Serialize
+    Debug, Default, 
+    Serialize, Deserialize
 )]
 pub struct Point3D { 
     pub x: f32, 

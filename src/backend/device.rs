@@ -1,7 +1,7 @@
 use std::sync::atomic::{AtomicUsize, Ordering};
 
 use log::info;
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use super::{CONTROL_FREQUENCY, DESTINATION_RADIUS, ITERATION_TIME};
@@ -60,7 +60,7 @@ pub enum DeviceError {
 }
 
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub enum SignalLossResponse {
     Ascend,
     #[default]
@@ -172,7 +172,7 @@ impl Default for DeviceBuilder {
 }
 
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct Device {
     id: DeviceId,
     current_time: Millisecond,
@@ -349,7 +349,7 @@ impl Device {
             signal_level,
         );
 
-        self.info_created_signal_for(&receiver.id());
+        self.info_created_signal_for(receiver.id());
 
         Ok(signal)
     }
@@ -376,7 +376,7 @@ impl Device {
 
         self.trx_system
             .receive_signal(signal, time)
-            .inspect(|_| 
+            .inspect(|()| 
                 info!(
                     "Current time: {}, Id: {}, Received message",
                     self.current_time,
@@ -593,7 +593,7 @@ impl Device {
         );
     }
 
-    fn info_created_signal_for(&self, receiver_id: &DeviceId) {
+    fn info_created_signal_for(&self, receiver_id: DeviceId) {
         info!(
             "Current time: {}, Id: {}, Created signal for {}",
             self.current_time,

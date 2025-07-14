@@ -1,5 +1,5 @@
 use derive_more::{Add, Sub, Mul, Div, MulAssign, DivAssign};
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::point::Point3D;
 
@@ -7,7 +7,8 @@ use super::point::Point3D;
 #[derive(
     Copy, Clone, 
     PartialEq, Add, Sub, Mul, Div, MulAssign, DivAssign, 
-    Debug, Default, Serialize
+    Debug, Default, 
+    Serialize, Deserialize
 )]
 pub struct Vector3D {
     pub initial_point: Point3D,

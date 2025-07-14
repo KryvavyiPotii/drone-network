@@ -1,11 +1,11 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::backend::device::{Device, IdToDelayMap, IdToDeviceMap};
 use crate::backend::mathphysics::{delay_to, Megahertz, Millisecond, Position};
 use crate::backend::signal::{Data, SignalQueue};
 
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct GPS {
     device: Device,
     frequency: Megahertz

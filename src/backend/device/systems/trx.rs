@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::backend::mathphysics::{Megahertz, Meter, Millisecond};
@@ -27,7 +27,7 @@ pub enum TRXSystemError {
 }
 
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub enum TRXSystemType {
     Color,
     #[default]
@@ -36,7 +36,7 @@ pub enum TRXSystemType {
 
 
 // By default a non-functioning strength TRXSystem is created.
-#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct TRXSystem {
     trx_system_type: TRXSystemType,
     tx_module: TXModule, 

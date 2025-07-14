@@ -16,7 +16,8 @@ use primitives::{
 
 pub use plotcfg::{
     Axes3DRanges, CameraAngle, DeviceColoring, Pixel, PlottersUnit, 
-    PlottersPoint3D, PlotResolution, meters_to_pixels 
+    PlottersPoint3D, PlotResolution, meters_to_pixels, DEFAULT_AXES_RANGE,
+    DEFAULT_CAMERA_ANGLE, DEFAULT_DEVICE_COLORING,
 };
 
 use plotcfg::{font_size, PLOT_MARGIN};

@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::backend::mathphysics::PowerUnit;
@@ -18,7 +18,7 @@ pub enum PowerSystemBuildError {
 
 
 // By default the system can supply any power, because its maximum power is 0.0.
-#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct PowerSystem {
     max_power: PowerUnit,
     power: PowerUnit,

@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::mathphysics::Point3D;
 
@@ -8,7 +8,7 @@ pub use scenario::Scenario;
 pub mod scenario;
 
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub enum TaskType {
     Attack,    
     Reconnect,
@@ -18,7 +18,7 @@ pub enum TaskType {
 }
 
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct Task {
     task_type: TaskType,
     destination: Option<Point3D>,

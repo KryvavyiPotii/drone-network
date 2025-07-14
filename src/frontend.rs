@@ -2,6 +2,7 @@ use super::backend::mathphysics::Millisecond;
 
 
 pub mod cli;
+pub mod config;
 pub mod examples;
 pub mod player;
 pub mod renderer;

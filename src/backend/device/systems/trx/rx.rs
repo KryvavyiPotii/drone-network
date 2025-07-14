@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::backend::mathphysics::{Megahertz, Millisecond};
@@ -16,13 +16,13 @@ const RECEIVE_RED_SIGNAL: f64    = 0.50;
 const RECEIVE_BLACK_SIGNAL: f64  = 0.10;
 
 
-fn signal_is_received(signal_level: &SignalLevel) -> bool {
+fn signal_is_received(signal_level: SignalLevel) -> bool {
     rand::random_bool(
         signal_receive_probability(signal_level)
     )
 }
 
-fn signal_receive_probability(signal_level: &SignalLevel) -> f64 {
+fn signal_receive_probability(signal_level: SignalLevel) -> f64 {
     if signal_level.is_green() {
         RECEIVE_GREEN_SIGNAL
     } else if signal_level.is_yellow() {
@@ -49,7 +49,7 @@ pub enum RXError {
 
 
 // By default we create a non-functioning RXModule.
-#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct RXModule {
     max_signal_levels: FreqToLevelMap,
     received_signals: Vec<ReceivedSignal>,
@@ -108,7 +108,7 @@ impl RXModule {
             }
         }
 
-        if !signal_is_received(signal.level()) {
+        if !signal_is_received(*signal.level()) {
             return Err(RXError::SignalNotReceived);
         }
 

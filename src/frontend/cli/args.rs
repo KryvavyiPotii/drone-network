@@ -7,25 +7,31 @@ use crate::backend::device::systems::TRXSystemType;
 use crate::backend::malware::{Malware, MalwareType};
 use crate::backend::mathphysics::Millisecond;
 use crate::frontend::{MALWARE_INFECTION_DELAY, MALWARE_SPREAD_DELAY};
+use crate::frontend::config::{
+    GeneralConfig, ModelConfig, ModelPlayerConfig, RenderConfig
+};
 use crate::frontend::examples::{Example, DEVICE_MAX_POWER};
-use crate::frontend::renderer::{Pixel, PlotResolution};
-
-use super::{GeneralConfig, ModelConfig, ModelPlayerConfig, RenderConfig};
+use crate::frontend::renderer::{
+    Pixel, PlotResolution, DEFAULT_AXES_RANGE,
+    DEFAULT_CAMERA_ANGLE, DEFAULT_DEVICE_COLORING
+};
 
 
 pub const ARG_DELAY_MULTIPLIER: &str = "delay multiplier";
 pub const ARG_DISPLAY_MALWARE_PROPAGATION: &str = "display malware propagation";
 pub const ARG_DRONE_COUNT: &str      = "drone count";
 pub const ARG_EXPERIMENT_TITLE: &str = "experiment title";
+pub const ARG_INPUT_MODEL: &str      = "network model path";
 pub const ARG_MALWARE_TYPE: &str     = "malware type";
 pub const ARG_NETWORK_TOPOLOGY: &str = "network topology";
-pub const ARG_OUTPUT_DIR: &str       = "output directory";
+pub const ARG_OUTPUT_DIR: &str       = "output directory path";
 pub const ARG_PLOT_CAPTION: &str     = "plot caption";
 pub const ARG_PLOT_HEIGHT: &str      = "plot height";
 pub const ARG_PLOT_WIDTH: &str       = "plot width";
 pub const ARG_SIM_TIME: &str         = "simulation time";
-pub const ARG_TRX_SYSTEM: &str       = "trx system";
+pub const ARG_TRX_SYSTEM: &str       = "trx system type";
 
+pub const EXP_CUSTOM: &str            = "custom";
 pub const EXP_GPS_ONLY: &str          = "gpsewd";
 pub const EXP_GPS_SPOOFING: &str      = "gpsspoof";
 pub const EXP_MALWARE_INFECTION: &str = "malware";
@@ -59,12 +65,19 @@ pub fn handle_arguments(matches: &ArgMatches) {
     };
  
     let example = match experiment_title.as_str() {
+        EXP_CUSTOM            => {
+            let Some(model_path) = input_model_path(matches) else {
+                return;
+            };
+            
+            Example::Custom(model_path)
+        },
         EXP_GPS_ONLY          => Example::GPSEWD,
         EXP_GPS_SPOOFING      => Example::GPSSpoofing,
         EXP_MALWARE_INFECTION => Example::MalwareInfection, 
         EXP_MOVEMENT          => Example::Movement,
         EXP_SIGNAL_LOSS       => Example::SignalLossResponse,
-        _ => return
+        _                     => return
     };
     
     example.execute(&general_config(matches));
@@ -85,6 +98,9 @@ fn general_config(matches: &ArgMatches) -> GeneralConfig {
     let render_config = RenderConfig::new(
         plot_caption(matches), 
         plot_resolution(matches), 
+        DEFAULT_AXES_RANGE,
+        DEFAULT_CAMERA_ANGLE,
+        DEFAULT_DEVICE_COLORING,
         display_malware_propagation(matches),
     );
     
@@ -95,15 +111,10 @@ fn general_config(matches: &ArgMatches) -> GeneralConfig {
     )
 }
 
-fn plot_resolution(matches: &ArgMatches) -> PlotResolution {
-    let plot_width = *matches
-        .get_one::<Pixel>(ARG_PLOT_WIDTH)
-        .unwrap();
-    let plot_height = *matches
-        .get_one::<Pixel>(ARG_PLOT_HEIGHT)
-        .unwrap();
-
-    PlotResolution::new(plot_width, plot_height)
+fn input_model_path(matches: &ArgMatches) -> Option<PathBuf> {
+    matches
+        .get_one::<PathBuf>(ARG_INPUT_MODEL)
+        .cloned()
 }
 
 fn trx_system_type(matches: &ArgMatches) -> Option<TRXSystemType> {
@@ -152,7 +163,7 @@ fn malware(matches: &ArgMatches) -> Option<Malware> {
     let malware_type = match malware_type_name.as_str() {
         MAL_DOS       => MalwareType::DoS(DEVICE_MAX_POWER),
         MAL_INDICATOR => MalwareType::Indicator,
-        _ => return None,
+        _             => return None,
     };
 
     let malware = Malware::new(
@@ -180,6 +191,17 @@ fn plot_caption(matches: &ArgMatches) -> &str {
     matches
         .get_one::<String>(ARG_PLOT_CAPTION)
         .unwrap()
+}
+
+fn plot_resolution(matches: &ArgMatches) -> PlotResolution {
+    let plot_width = *matches
+        .get_one::<Pixel>(ARG_PLOT_WIDTH)
+        .unwrap();
+    let plot_height = *matches
+        .get_one::<Pixel>(ARG_PLOT_HEIGHT)
+        .unwrap();
+
+    PlotResolution::new(plot_width, plot_height)
 }
 
 fn display_malware_propagation(matches: &ArgMatches) -> bool {

@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::collections::hash_map::{Iter, IterMut, Keys, Values, ValuesMut};
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::backend::mathphysics::Millisecond;
 use crate::backend::signal::SignalLevel;
@@ -15,7 +15,7 @@ pub type IdToLevelMap = HashMap<DeviceId, SignalLevel>;
 pub type IdToTaskMap  = HashMap<DeviceId, Task>;
 
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct IdToDeviceMap(HashMap<DeviceId, Device>);
 
 impl IdToDeviceMap {

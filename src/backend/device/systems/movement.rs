@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::backend::mathphysics::{MeterPerSecond, Point3D, Vector3D};
@@ -12,7 +12,7 @@ pub enum MovementSystemBuildError {
 
 
 // By default the system can not move, because its maximum speed is 0.0.
-#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct MovementSystem {
     position_in_meters: Point3D,
     max_speed: MeterPerSecond,

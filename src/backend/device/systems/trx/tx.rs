@@ -1,11 +1,11 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::backend::mathphysics::{Megahertz, Meter};
 use crate::backend::signal::{BLACK_SIGNAL_LEVEL, FreqToLevelMap, SignalLevel};
 
 
 // By default we create a non-functioning TXModule.
-#[derive(Clone, Debug, Default, PartialEq, Serialize)]
+#[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct TXModule {
     signal_levels: FreqToLevelMap
 }

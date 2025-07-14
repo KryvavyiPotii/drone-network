@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::backend::device::{DeviceId, IdToDelayMap, BROADCAST_ID}; 
 use crate::backend::mathphysics::Millisecond;
@@ -6,6 +6,9 @@ use crate::backend::mathphysics::Millisecond;
 use super::Signal;
 
 
+// The first element - time of signal creation.
+// The second element - the signal.
+// The third element - delays of sending the signal to devices.
 type SignalQueueEntry = (Millisecond, Signal, IdToDelayMap);
 
 
@@ -24,7 +27,7 @@ fn any_delay_for(
 }
 
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct SignalQueue(Vec<SignalQueueEntry>);
 
 impl SignalQueue {

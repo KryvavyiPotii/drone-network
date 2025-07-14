@@ -4,6 +4,18 @@ use crate::backend::mathphysics::{Meter, Point3D};
 
 
 pub const PLOT_MARGIN: Pixel = 20;
+pub const DEFAULT_AXES_RANGE: Axes3DRanges = Axes3DRanges {
+    x: 0.0..200.0,
+    y: 0.0..200.0,
+    z: 0.0..200.0,
+};
+pub const DEFAULT_CAMERA_ANGLE: CameraAngle = CameraAngle {
+    pitch: 0.15,
+    yaw: 0.5
+};
+pub const DEFAULT_DEVICE_COLORING: DeviceColoring = DeviceColoring::SingleColor(
+    0, 0, 0
+);
 
 const METERS_TO_PIXELS_SCALE_COEF: PlottersUnit = 400.0;
 
@@ -63,16 +75,6 @@ impl Axes3DRanges {
     #[must_use]
     pub fn z(&self) -> Range<PlottersUnit> {
         self.z.clone()
-    }
-}
-
-impl Default for Axes3DRanges {
-    fn default() -> Self {
-        Self {
-            x: 0.0..200.0,
-            y: 0.0..200.0,
-            z: 0.0..200.0,
-        }
     }
 }
 

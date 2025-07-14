@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::backend::device::systems::TRXSystemError;
@@ -63,7 +63,7 @@ pub fn add_malware_signals_to_queue(
 }
 
 
-#[derive(Clone, Copy, Debug, Serialize)]
+#[derive(Clone, Copy, Debug, Serialize, Deserialize)]
 pub enum AttackType {
     ElectronicWarfare,
     GPSSpoofing(Point3D),
@@ -71,7 +71,7 @@ pub enum AttackType {
 }
 
 
-#[derive(Clone, Debug, Serialize)]
+#[derive(Clone, Debug, Serialize, Deserialize)]
 pub struct AttackerDevice {
     device: Device,
     attack_type: AttackType

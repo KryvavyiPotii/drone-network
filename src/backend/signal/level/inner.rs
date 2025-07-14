@@ -1,6 +1,6 @@
 use std::fmt;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::backend::signal::strength::{
     MAX_BLACK_SIGNAL_STRENGTH, MAX_RED_SIGNAL_STRENGTH, 
@@ -14,7 +14,7 @@ const DISPLAY_RED_LEVEL: &str    = "Red";
 const DISPLAY_BLACK_LEVEL: &str  = "Black";
 
 
-#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize)]
+#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Serialize, Deserialize)]
 pub enum SignalLevelInner {
     Black(SignalStrength),  // (almost) no signal
     Red(SignalStrength),    // signal level is critically low
@@ -57,7 +57,7 @@ impl fmt::Display for SignalLevelInner {
             Self::Black(strength)  => (DISPLAY_BLACK_LEVEL, strength.value()),
         };
 
-        write!(f, "{}({})", color_str, strength_value)
+        write!(f, "{color_str}({strength_value})")
     }
 }
 

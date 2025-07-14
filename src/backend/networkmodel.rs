@@ -1,5 +1,7 @@
-use log::info;
-use serde::Serialize;
+use std::fs;
+use std::path::Path;
+
+use serde::{Deserialize, Serialize};
 
 use super::{CONTROL_FREQUENCY, ITERATION_TIME};
 use super::connections::{ConnectionGraph, Topology};
@@ -105,7 +107,7 @@ impl NetworkModelBuilder {
 }
 
 
-#[derive(Clone, Serialize)]
+#[derive(Clone, Serialize, Deserialize)]
 pub struct NetworkModel {
     current_time: Millisecond,
     command_device_id: DeviceId,
@@ -174,8 +176,22 @@ impl NetworkModel {
     /// # Errors
     ///
     /// Will return `Err` if serialization fails.
-    pub fn json(&self) -> serde_json::Result<String> {
+    pub fn to_json(&self) -> serde_json::Result<String> {
         serde_json::to_string(&self)
+    }
+    
+    /// # Errors
+    ///
+    /// Will return `Err` if serialization fails.
+    /// 
+    /// # Panics
+    ///
+    /// Will panic if it fails to read the file at `model_path`.
+    pub fn from_json(model_path: &Path) -> serde_json::Result<Self> {
+        let json_string = fs::read_to_string(model_path)
+            .expect("Failed to read `.json` file");
+
+        serde_json::from_str(&json_string)
     }
 
     pub fn update(&mut self) {
@@ -305,30 +321,9 @@ impl NetworkModel {
     }
 
     fn set_initial_state(&mut self) {
-        self.info_device_ids(); 
-
         self.update_connections_graph();
         self.add_gps_signals_to_queue();
         self.add_scenario_signals_to_queue();
-    }
-
-
-    fn info_device_ids(&self) {
-        let attacker_device_ids: Vec<DeviceId> = self.attacker_devices
-            .iter()
-            .map(|attacker_device| attacker_device.device().id())
-            .collect();
-
-        info!(
-            "Command device id: {}, \
-            GPS id: {}, \
-            All attacker device ids: {:?}, \
-            All device ids: {:?}",
-            self.command_device_id,
-            self.gps.device().id(),
-            attacker_device_ids,
-            self.device_map.ids().collect::<Vec<&DeviceId>>()
-        )
     }
 }
 

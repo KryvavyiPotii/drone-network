@@ -1,4 +1,4 @@
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::backend::device::{DeviceId, BROADCAST_ID};
 use crate::backend::mathphysics::Millisecond;
@@ -9,7 +9,7 @@ use super::Task;
 type ScenarioEntry = (Millisecond, DeviceId, Task);
 
 
-#[derive(Clone, Debug, Default, Serialize)]
+#[derive(Clone, Debug, Default, Serialize, Deserialize)]
 pub struct Scenario(Vec<ScenarioEntry>);
 
 impl Scenario {

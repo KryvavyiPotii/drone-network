@@ -1,8 +1,10 @@
 use std::collections::HashMap;
+use std::fmt;
 
 use rustworkx_core::distancemap::DistanceMap;
-use serde::Serialize;
+use serde::{self, Serialize};
 use serde::ser::{Serializer, SerializeStruct};
+use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
 use thiserror::Error;
 
 use petgraph::Directed;
@@ -20,7 +22,9 @@ use super::signal::SignalLevel;
 
 
 type Connection<'a> = (DeviceId, DeviceId, &'a (Meter, SignalLevel));
+type SerdeEdge      = (DeviceId, DeviceId, (Meter, SignalLevel));
 type ConnectionMap  = GraphMap<DeviceId, (Meter, SignalLevel), Directed>;
+
 
 #[derive(Error, Debug)]
 pub enum ShortestPathError {
@@ -50,7 +54,7 @@ fn unicast_delay_map_from_outside_network(
 }
 
 
-#[derive(Clone, Copy, Debug, Default, Serialize)]
+#[derive(Clone, Copy, Debug, Default, Serialize, serde::Deserialize)]
 pub enum Topology {
     #[default]
     Star,
@@ -397,6 +401,89 @@ impl Serialize for ConnectionGraph {
         state.serialize_field("edges", &all_edges)?;
         state.serialize_field("topology", &self.topology)?;
         state.end()    
+    }
+}
+
+impl<'de> Deserialize<'de> for ConnectionGraph {
+    fn deserialize<D>(deserializer: D) -> Result<Self, D::Error>
+    where
+        D: Deserializer<'de>,
+    {
+        #[derive(serde::Deserialize)]
+        #[serde(field_identifier, rename_all = "lowercase")]
+        enum Field { Edges, Topology }
+        struct ConnectionGraphVisitor;
+
+        impl<'de> Visitor<'de> for ConnectionGraphVisitor {
+            type Value = ConnectionGraph;
+
+            fn expecting(&self, formatter: &mut fmt::Formatter) -> fmt::Result {
+                formatter.write_str("struct ConnectionGraph")
+            }
+
+            fn visit_seq<V>(
+                self, 
+                mut seq: V
+            ) -> Result<ConnectionGraph, V::Error>
+            where
+                V: SeqAccess<'de>,
+            {
+                let edges: Vec<SerdeEdge> = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(0, &self))?;
+                let graph_map = GraphMap::from_edges(edges);
+                
+                let topology = seq.next_element()?
+                    .ok_or_else(|| de::Error::invalid_length(1, &self))?;
+
+                Ok(ConnectionGraph { graph_map, topology } )
+            }
+
+            fn visit_map<V>(
+                self, 
+                mut map: V
+            ) -> Result<ConnectionGraph, V::Error>
+            where
+                V: MapAccess<'de>,
+            {
+                let mut edges = None;
+                let mut topology = None;
+                while let Some(key) = map.next_key()? {
+                    match key {
+                        Field::Edges => {
+                            if edges.is_some() {
+                                return Err(
+                                    de::Error::duplicate_field("edges")
+                                );
+                            }
+                            edges = Some(map.next_value()?);
+                        }
+                        Field::Topology => {
+                            if topology.is_some() {
+                                return Err(
+                                    de::Error::duplicate_field("topology")
+                                );
+                            }
+                            topology = Some(map.next_value()?);
+                        }
+                    }
+                }
+                let edges: Vec<SerdeEdge> = edges
+                    .ok_or_else(|| de::Error::missing_field("edges"))?;
+                let graph_map = GraphMap::from_edges(edges);
+                
+                let topology = topology
+                    .ok_or_else(|| de::Error::missing_field("topology"))?;
+
+                Ok(ConnectionGraph { graph_map, topology } )
+            }
+        }
+
+        const FIELDS: &[&str] = &["edges", "topology"];
+        deserializer.deserialize_struct(
+            "ConnectionGraph", 
+            FIELDS, 
+            ConnectionGraphVisitor
+        )
     }
 }
 

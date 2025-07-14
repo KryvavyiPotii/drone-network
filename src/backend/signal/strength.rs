@@ -6,7 +6,7 @@ use impl_ops::{
     _impl_binary_op_internal, _impl_binary_op_owned_borrowed, 
     _impl_binary_op_owned_owned, _parse_binary_op, impl_op, impl_op_ex
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 
 pub const GREEN_SIGNAL_STRENGTH_VALUE: f32           = 100.0;
@@ -44,7 +44,11 @@ pub fn min_signal_strength(
 }
 
 
-#[derive(Clone, Copy, Debug, Default, Mul, PartialEq, PartialOrd, Serialize)]
+#[derive(
+    Clone, Copy, Debug, Default, 
+    Mul, PartialEq, PartialOrd, 
+    Serialize, Deserialize
+)]
 pub struct SignalStrength(f32);
 
 impl SignalStrength {

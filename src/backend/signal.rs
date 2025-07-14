@@ -1,6 +1,6 @@
 use std::collections::HashMap;
 
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use super::device::DeviceId;
 use super::malware::Malware;
@@ -27,10 +27,10 @@ pub const WIFI_2_4GHZ_FREQUENCY: Megahertz = 2_400;
 const SIGNAL_STRENGTH_SCALING: f32 = 2_500.0; 
 
 
-pub type FreqToLevelMap  = HashMap<Megahertz, SignalLevel>;
+pub type FreqToLevelMap = HashMap<Megahertz, SignalLevel>;
 
 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub enum Data {
     GPS(Point3D),
     Malware(Malware),
@@ -40,7 +40,7 @@ pub enum Data {
 
 // Using `source_id` and `destination_id` is not realistic for signal but it is
 // required for device communication to function. 
-#[derive(Clone, Copy, Debug, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
 pub struct Signal {
     source_id: DeviceId,
     destination_id: DeviceId,

@@ -6,7 +6,7 @@ use impl_ops::{
     _impl_binary_op_internal, _impl_binary_op_owned_borrowed, 
     _impl_binary_op_owned_owned, _parse_binary_op, impl_op, impl_op_ex
 };
-use serde::Serialize;
+use serde::{Deserialize, Serialize};
 
 use crate::backend::mathphysics::{wave_length_in_meters, Megahertz, Meter};
 
@@ -48,7 +48,12 @@ pub fn min_signal_level(
 }
 
 
-#[derive(Clone, Copy, PartialEq, PartialOrd, Debug, Default, Serialize)]
+#[derive(
+    Clone, Copy, 
+    PartialEq, PartialOrd, 
+    Debug, Default, 
+    Serialize, Deserialize
+)]
 pub struct SignalLevel(SignalLevelInner);
 
 impl SignalLevel {
