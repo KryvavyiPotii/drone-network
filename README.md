@@ -22,32 +22,32 @@ Models drone networks.
 Usage: drone_network [OPTIONS]
 
 Options:
-      --od <output directory>
-          Serialize network model data on each iteration to specified directory
-  -c, --caption <plot caption>
-          Set the plot caption [default: ]
-      --width <plot width>
-          Set the plot width [default: 400]
-      --height <plot height>
-          Set the plot height [default: 300]
-      --time <simulation time>
-          Set the simulation time [default: 15000]
   -x, --experiment <experiment title>
-          Choose experiment title [possible values: delays, gpsewd, gpsspoof, malware, signalloss]
-      --trx <trx system>
+          Choose experiment title [possible values: custom, gpsewd, gpsspoof, malware, move, signalloss]
+      --im <network model path>
+          Deserialize network model from `.json` file and use it
+      --trx <trx system type>
           Choose device TRX system type [default: both] [possible values: both, color, strength]
   -t, --topology <network topology>
           Choose network topology [default: both] [possible values: both, mesh, star]
   -n <drone count>
-          Set the number of drones in the network [default: 100]
+          Set the number of drones in the network (non-negative integer) [default: 100]
   -d, --delay-multiplier <delay multiplier>
-          Set signal transmission delay multiplier [default: 0.0]
-      --display-delayless
-          Show the same network model without delays as well ("delays" experiment)
+          Set signal transmission delay multiplier (non-negative float) [default: 0.0]
       --display-propagation
           Show malware propagation as well ("malware" experiment)
   -i, --infection <malware type>
           Choose infection type ("malware" experiment) [possible values: dos, indicator]
+      --od <output directory path>
+          Serialize network model data on each iteration to specified directory
+  -c, --caption <plot caption>
+          Set the plot caption [default: ]
+      --width <plot width>
+          Set the plot width (in pixels) [default: 400]
+      --height <plot height>
+          Set the plot height (in pixels) [default: 300]
+      --time <simulation time>
+          Set the simulation time (in millis) [default: 15000]
   -h, --help
           Print help
   -V, --version
