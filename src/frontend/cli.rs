@@ -63,7 +63,7 @@ pub fn cli() {
             Arg::new(ARG_TRX_SYSTEM)
                 .long("trx")
                 .value_parser([TRX_BOTH, TRX_COLOR, TRX_STRENGTH])
-                .default_value(TRX_BOTH)
+                .required(true)
                 .help("Choose device TRX system type")
         )
         .arg(
@@ -71,7 +71,7 @@ pub fn cli() {
                 .short('t')
                 .long("topology")
                 .value_parser([TOPOLOGY_BOTH, TOPOLOGY_MESH, TOPOLOGY_STAR])
-                .default_value(TOPOLOGY_BOTH)
+                .required(true)
                 .help("Choose network topology")
         )
         .arg(

@@ -89,6 +89,11 @@ impl AttackerDevice {
     }
 
     #[must_use]
+    pub fn device_mut(&mut self) -> &mut Device {
+        &mut self.device
+    }
+
+    #[must_use]
     pub fn attack_type(&self) -> AttackType {
         self.attack_type
     }

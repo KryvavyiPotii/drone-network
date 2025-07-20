@@ -51,8 +51,6 @@ fn generate_device_id() -> DeviceId {
 
 #[derive(Debug, Error)]
 pub enum DeviceError {
-    #[error("System is disabled")]
-    DisabledSystem,
     #[error("Power system failed with error `{0}`")]
     PowerSystemError(#[from] PowerSystemError),
     #[error("TRX system failed with error `{0}`")]
@@ -378,9 +376,10 @@ impl Device {
             .receive_signal(signal, time)
             .inspect(|()| 
                 info!(
-                    "Current time: {}, Id: {}, Received message",
+                    "Current time: {}, Id: {}, Received signal from {}",
                     self.current_time,
-                    self.id
+                    self.id,
+                    signal.source_id()
                 )
             )
     }
@@ -438,7 +437,7 @@ impl Device {
                 *malware, 
                 (self.current_time, InfectionState::Infected)
             );
-            self.info_infected();
+            self.info_infected(malware);
         }
     }
     
@@ -521,7 +520,7 @@ impl Device {
 
     fn update_real_position(&mut self) -> Result<(), DeviceError> {
         if self.movement_system.is_disabled() {
-            return Err(DeviceError::DisabledSystem);
+            return Ok(());
         }
 
         self.try_consume_power(MOVEMENT_POWER_CONSUMPTION)?;
@@ -602,11 +601,12 @@ impl Device {
         );
     }
 
-    fn info_infected(&self) {
+    fn info_infected(&self, malware: &Malware) {
         info!(
-            "Current time: {}, Id: {}, Device was infected",
+            "Current time: {}, Id: {}, Device was infected with {}",
             self.current_time,
             self.id,
+            malware
         );
     }
 

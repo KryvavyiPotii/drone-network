@@ -21,6 +21,11 @@ impl GPS {
     pub fn device(&self) -> &Device {
         &self.device
     }
+    
+    #[must_use]
+    pub fn device_mut(&mut self) -> &mut Device {
+        &mut self.device
+    }
 
     pub fn add_gps_signals_to_queue(
         &self,

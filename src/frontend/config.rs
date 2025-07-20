@@ -57,6 +57,7 @@ impl GeneralConfig {
 }
 
 
+#[derive(Default)]
 pub struct ModelConfig {
     // If `None`, all TRX system types will be used.
     trx_system_type: Option<TRXSystemType>,

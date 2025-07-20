@@ -79,35 +79,46 @@ pub fn handle_arguments(matches: &ArgMatches) {
         EXP_SIGNAL_LOSS       => Example::SignalLossResponse,
         _                     => return
     };
+
+    let model_config = match example {
+        Example::Custom(_) => ModelConfig::default(),
+        _                  => model_config(matches),
+    };
     
-    example.execute(&general_config(matches));
+    example.execute(
+        &GeneralConfig::new(
+            model_config,
+            model_player_config(matches),
+            render_config(matches)
+        )
+    );
 }
 
-fn general_config(matches: &ArgMatches) -> GeneralConfig {
-    let model_config = ModelConfig::new(
+fn model_config(matches: &ArgMatches) -> ModelConfig {
+    ModelConfig::new(
         trx_system_type(matches), 
         topology(matches),
         drone_count(matches),
         delay_multiplier(matches),
         malware(matches),
-    );   
-    let model_player_config = ModelPlayerConfig::new(
+    )
+}
+
+fn model_player_config(matches: &ArgMatches) -> ModelPlayerConfig {
+    ModelPlayerConfig::new(
         output_directory(matches), 
         simulation_time(matches),
-    );
-    let render_config = RenderConfig::new(
+    )
+}
+
+fn render_config(matches: &ArgMatches) -> RenderConfig {
+    RenderConfig::new(
         plot_caption(matches), 
         plot_resolution(matches), 
         DEFAULT_AXES_RANGE,
         DEFAULT_CAMERA_ANGLE,
         DEFAULT_DEVICE_COLORING,
         display_malware_propagation(matches),
-    );
-    
-    GeneralConfig::new(
-        model_config, 
-        model_player_config,
-        render_config
     )
 }
 

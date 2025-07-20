@@ -236,6 +236,14 @@ impl NetworkModel {
     }
 
     fn update_devices(&mut self) {
+        self.attacker_devices
+            .iter_mut()
+            .for_each(|attacker_device| { 
+                let _ = attacker_device.device_mut().update(); 
+            });
+
+        let _ = self.gps.device_mut().update();
+        
         for (device_id, device) in &mut self.device_map {
             for attacker_device in &self.attacker_devices {
                 let _ = attacker_device.execute_attack(
