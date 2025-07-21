@@ -41,11 +41,9 @@ pub const EXP_SIGNAL_LOSS: &str       = "signalloss";
 pub const MAL_DOS: &str       = "dos";
 pub const MAL_INDICATOR: &str = "indicator";
 
-pub const TOPOLOGY_BOTH: &str = "both";
 pub const TOPOLOGY_MESH: &str = "mesh";
 pub const TOPOLOGY_STAR: &str = "star";
 
-pub const TRX_BOTH: &str     = "both";
 pub const TRX_COLOR: &str    = "color";
 pub const TRX_STRENGTH: &str = "strength";
 
@@ -128,32 +126,28 @@ fn input_model_path(matches: &ArgMatches) -> Option<PathBuf> {
         .cloned()
 }
 
-fn trx_system_type(matches: &ArgMatches) -> Option<TRXSystemType> {
-    let trx_system_type = match matches
+fn trx_system_type(matches: &ArgMatches) -> TRXSystemType {
+    match matches
         .get_one::<String>(ARG_TRX_SYSTEM) 
         .unwrap()
         .as_str() 
     {
         TRX_COLOR    => TRXSystemType::Color,
         TRX_STRENGTH => TRXSystemType::Strength,
-        _ => return None,
-    };
-
-    Some(trx_system_type)
+        _             => panic!("Wrong TRX system type")
+    }
 }
 
-fn topology(matches: &ArgMatches) -> Option<Topology> {
-    let topology = match matches
+fn topology(matches: &ArgMatches) -> Topology {
+    match matches
         .get_one::<String>(ARG_NETWORK_TOPOLOGY)
         .unwrap()
         .as_str()
     {
         TOPOLOGY_STAR => Topology::Star,
         TOPOLOGY_MESH => Topology::Mesh,
-        _ => return None,
-    };
-
-    Some(topology)
+        _             => panic!("Wrong topology")
+    }
 }
 
 fn drone_count(matches: &ArgMatches) -> usize {

@@ -13,8 +13,8 @@ use args::{
     DEFAULT_DRONE_COUNT, DEFAULT_PLOT_CAPTION, DEFAULT_PLOT_HEIGHT, 
     DEFAULT_PLOT_WIDTH, DEFAULT_SIM_TIME, EXP_CUSTOM, EXP_GPS_ONLY, 
     EXP_GPS_SPOOFING, EXP_MALWARE_INFECTION, EXP_MOVEMENT, EXP_SIGNAL_LOSS, 
-    MAL_DOS, MAL_INDICATOR, TOPOLOGY_BOTH, TOPOLOGY_MESH, TOPOLOGY_STAR, 
-    TRX_BOTH, TRX_COLOR, TRX_STRENGTH
+    MAL_DOS, MAL_INDICATOR, TOPOLOGY_MESH, TOPOLOGY_STAR, TRX_COLOR, 
+    TRX_STRENGTH
 };
 
 
@@ -23,7 +23,7 @@ mod args;
 
 pub fn cli() {
     let matches = Command::new("drone_network")
-        .version("0.1.2")
+        .version("0.1.3")
         .about("Models drone networks.")
         .arg(
             Arg::new(ARG_EXPERIMENT_TITLE)
@@ -55,14 +55,12 @@ pub fn cli() {
                     ARG_NETWORK_TOPOLOGY,
                     ARG_TRX_SYSTEM,
                 ])
-                .help(
-                    "Deserialize network model from `.json` file and use it"
-                )
+                .help("Deserialize network model from `.json` file and use it")
         )
         .arg(
             Arg::new(ARG_TRX_SYSTEM)
                 .long("trx")
-                .value_parser([TRX_BOTH, TRX_COLOR, TRX_STRENGTH])
+                .value_parser([TRX_COLOR, TRX_STRENGTH])
                 .required(true)
                 .help("Choose device TRX system type")
         )
@@ -70,7 +68,7 @@ pub fn cli() {
             Arg::new(ARG_NETWORK_TOPOLOGY)
                 .short('t')
                 .long("topology")
-                .value_parser([TOPOLOGY_BOTH, TOPOLOGY_MESH, TOPOLOGY_STAR])
+                .value_parser([TOPOLOGY_MESH, TOPOLOGY_STAR])
                 .required(true)
                 .help("Choose network topology")
         )

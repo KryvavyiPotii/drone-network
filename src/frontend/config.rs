@@ -59,10 +59,8 @@ impl GeneralConfig {
 
 #[derive(Default)]
 pub struct ModelConfig {
-    // If `None`, all TRX system types will be used.
-    trx_system_type: Option<TRXSystemType>,
-    // If `None`, all topologies will be used.
-    topology: Option<Topology>,
+    trx_system_type: TRXSystemType,
+    topology: Topology,
     drone_count: usize,
     delay_multiplier: f32,
     malware: Option<Malware>,
@@ -71,8 +69,8 @@ pub struct ModelConfig {
 impl ModelConfig {
     #[must_use]
     pub fn new(
-        trx_system_type: Option<TRXSystemType>,
-        topology: Option<Topology>,
+        trx_system_type: TRXSystemType,
+        topology: Topology,
         drone_count: usize,
         delay_multiplier: f32,
         malware: Option<Malware>,
@@ -87,12 +85,12 @@ impl ModelConfig {
     }
 
     #[must_use]
-    pub fn trx_system_type(&self) -> Option<TRXSystemType> {
+    pub fn trx_system_type(&self) -> TRXSystemType {
         self.trx_system_type
     }
     
     #[must_use]
-    pub fn topology(&self) -> Option<Topology> {
+    pub fn topology(&self) -> Topology {
         self.topology
     }
     

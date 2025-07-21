@@ -90,8 +90,6 @@ pub fn indicator_malware() -> Malware {
 
 pub fn gps_only(
     general_config: &GeneralConfig,
-    trx_system_type: TRXSystemType,
-    topology: Topology,
     drone_positions: &[Point3D],
     vulnerabilities: &[Vec<Malware>],
 ) {
@@ -105,7 +103,7 @@ pub fn gps_only(
         .set_power_system(device_power_system())
         .set_trx_system(
             cc_trx_system(
-                trx_system_type, 
+                general_config.model_config().trx_system_type(), 
                 cc_tx_control_area_radius
             )
         )
@@ -117,7 +115,7 @@ pub fn gps_only(
         general_config.model_config().drone_count(),
         drone_positions,
         vulnerabilities,
-        trx_system_type,
+        general_config.model_config().trx_system_type(),
         drone_tx_control_area_radius, 
         drone_gps_rx_signal_level, 
     );
@@ -128,7 +126,7 @@ pub fn gps_only(
         .set_power_system(device_power_system())
         .set_trx_system(
             ewd_trx_system(
-                trx_system_type, 
+                general_config.model_config().trx_system_type(), 
                 GPS_L1_FREQUENCY, 
                 ewd_suppression_area_radius
             )
@@ -142,15 +140,15 @@ pub fn gps_only(
         .set_command_center_id(command_center_id)
         .set_device_map(IdToDeviceMap::from(devices.as_slice()))
         .set_attacker_devices(attacker_devices)
-        .set_gps(default_gps(trx_system_type))
-        .set_topology(topology)
+        .set_gps(default_gps(general_config.model_config().trx_system_type()))
+        .set_topology(general_config.model_config().topology())
         .set_scenario(attack_scenario())
         .set_delay_multiplier(general_config.model_config().delay_multiplier())
         .build();
 
     let output_filename = derive_filename(
-        trx_system_type, 
-        topology, 
+        general_config.model_config().trx_system_type(), 
+        general_config.model_config().topology(), 
         "gps_only"
     );
     let renderer       = PlottersRenderer::new(
@@ -174,8 +172,6 @@ pub fn gps_only(
 
 pub fn movement(
     general_config: &GeneralConfig,
-    trx_system_type: TRXSystemType,
-    topology: Topology,
     drone_positions: &[Point3D],
     vulnerabilities: &[Vec<Malware>],
 ) {
@@ -188,7 +184,7 @@ pub fn movement(
         .set_power_system(device_power_system())
         .set_trx_system(
             cc_trx_system(
-                trx_system_type, 
+                general_config.model_config().trx_system_type(), 
                 cc_tx_control_area_radius
             )
         )
@@ -200,7 +196,7 @@ pub fn movement(
         general_config.model_config().drone_count(), 
         drone_positions,
         vulnerabilities,
-        trx_system_type,
+        general_config.model_config().trx_system_type(),
         drone_tx_control_area_radius,
         drone_gps_rx_signal_level,
     ); 
@@ -209,15 +205,15 @@ pub fn movement(
     let drone_network = NetworkModelBuilder::new()
         .set_command_center_id(command_center_id)
         .set_device_map(IdToDeviceMap::from(devices.as_slice()))
-        .set_gps(default_gps(trx_system_type))
-        .set_topology(topology)
+        .set_gps(default_gps(general_config.model_config().trx_system_type()))
+        .set_topology(general_config.model_config().topology())
         .set_scenario(reposition_scenario())
         .set_delay_multiplier(general_config.model_config().delay_multiplier())
         .build();
 
     let output_filename = derive_filename(
-        trx_system_type,
-        topology, 
+        general_config.model_config().trx_system_type(),
+        general_config.model_config().topology(), 
         "movement"
     );
     let renderer       = PlottersRenderer::new(
@@ -241,8 +237,6 @@ pub fn movement(
 
 pub fn gps_spoofing(
     general_config: &GeneralConfig,
-    trx_system_type: TRXSystemType,
-    topology: Topology,
     drone_positions: &[Point3D],
     vulnerabilities: &[Vec<Malware>],
 ) {
@@ -256,7 +250,7 @@ pub fn gps_spoofing(
         .set_power_system(device_power_system())
         .set_trx_system(
             cc_trx_system(
-                trx_system_type, 
+                general_config.model_config().trx_system_type(), 
                 cc_tx_control_area_radius
             )
         )
@@ -268,7 +262,7 @@ pub fn gps_spoofing(
         general_config.model_config().drone_count(),
         drone_positions,
         vulnerabilities,
-        trx_system_type,
+        general_config.model_config().trx_system_type(),
         drone_tx_control_area_radius, 
         drone_gps_rx_signal_level, 
     ); 
@@ -279,7 +273,7 @@ pub fn gps_spoofing(
         .set_power_system(device_power_system())
         .set_trx_system(
             ewd_trx_system(
-                trx_system_type, 
+                general_config.model_config().trx_system_type(), 
                 GPS_L1_FREQUENCY, 
                 gps_spoofing_area_radius
             )
@@ -294,15 +288,15 @@ pub fn gps_spoofing(
         .set_command_center_id(command_center_id)
         .set_device_map(IdToDeviceMap::from(devices.as_slice()))
         .set_attacker_devices(attacker_devices)
-        .set_gps(default_gps(trx_system_type))
-        .set_topology(topology)
+        .set_gps(default_gps(general_config.model_config().trx_system_type()))
+        .set_topology(general_config.model_config().topology())
         .set_scenario(attack_scenario())
         .set_delay_multiplier(general_config.model_config().delay_multiplier())
         .build();
 
     let output_filename = derive_filename(
-        trx_system_type,
-        topology, 
+        general_config.model_config().trx_system_type(),
+        general_config.model_config().topology(), 
         "gps_spoofing"
     );
     let axes_ranges    = Axes3DRanges::new(0.0..200.0, 0.0..0.0, 0.0..200.0);
@@ -328,8 +322,6 @@ pub fn gps_spoofing(
 
 pub fn malware_infection(
     general_config: &GeneralConfig,
-    trx_system_type: TRXSystemType,
-    topology: Topology,
     drone_positions: &[Point3D],
     vulnerabilities: &[Vec<Malware>],
 ) {
@@ -345,7 +337,7 @@ pub fn malware_infection(
         .set_power_system(device_power_system())
         .set_trx_system(
             cc_trx_system(
-                trx_system_type, 
+                general_config.model_config().trx_system_type(), 
                 cc_tx_control_area_radius
             )
         )
@@ -358,7 +350,7 @@ pub fn malware_infection(
         general_config.model_config().drone_count(),
         drone_positions,
         vulnerabilities,
-        trx_system_type,
+        general_config.model_config().trx_system_type(),
         drone_tx_control_area_radius,
         drone_gps_rx_signal_level,
     ); 
@@ -369,7 +361,7 @@ pub fn malware_infection(
         .set_power_system(device_power_system())
         .set_trx_system(
             ewd_trx_system(
-                trx_system_type,
+                general_config.model_config().trx_system_type(),
                 CONTROL_FREQUENCY,
                 attacker_tx_area_radius
             )
@@ -385,8 +377,8 @@ pub fn malware_infection(
     let drone_network_builder = NetworkModelBuilder::new()
         .set_command_center_id(command_center_id)
         .set_device_map(IdToDeviceMap::from(devices.as_slice()))
-        .set_gps(default_gps(trx_system_type))
-        .set_topology(topology)
+        .set_gps(default_gps(general_config.model_config().trx_system_type()))
+        .set_topology(general_config.model_config().topology())
         .set_delay_multiplier(general_config.model_config().delay_multiplier());
     
     if general_config.render_config().display_malware_propagation() {
@@ -394,8 +386,6 @@ pub fn malware_infection(
             attacker,
             drone_network_builder.clone(),
             general_config,
-            trx_system_type,
-            topology,
         );
     }
 
@@ -408,8 +398,8 @@ pub fn malware_infection(
         MalwareType::Indicator  => "mal_indicator",
     };
     let output_filename = derive_filename(
-        trx_system_type,
-        topology, 
+        general_config.model_config().trx_system_type(),
+        general_config.model_config().topology(), 
         text,
     );
     let drone_coloring = match malware.malware_type() {
@@ -441,8 +431,6 @@ pub fn malware_propagation(
     attacker: Device,
     drone_network_builder: NetworkModelBuilder,
     general_config: &GeneralConfig,
-    trx_system_type: TRXSystemType,
-    topology: Topology,
 ) {
     let malware = indicator_malware();
     let attacker_devices = vec![
@@ -457,8 +445,8 @@ pub fn malware_propagation(
         .build();
 
     let output_filename = derive_filename(
-        trx_system_type,
-        topology, 
+        general_config.model_config().trx_system_type(),
+        general_config.model_config().topology(), 
         "mal_indicator",
     );
     let drone_coloring = DeviceColoring::Infection; 
@@ -485,8 +473,6 @@ pub fn malware_propagation(
 
 pub fn signal_loss_response(
     general_config: &GeneralConfig,
-    trx_system_type: TRXSystemType,
-    topology: Topology,
     _drone_positions: &[Point3D],
     _vulnerabilities: &[Vec<Malware>],
 ) {
@@ -501,7 +487,7 @@ pub fn signal_loss_response(
         .set_power_system(device_power_system())
         .set_trx_system(
             cc_trx_system(
-                trx_system_type, 
+                general_config.model_config().trx_system_type(), 
                 cc_tx_control_area_radius
             )
         )
@@ -515,7 +501,7 @@ pub fn signal_loss_response(
         .set_movement_system(device_movement_system())
         .set_trx_system(
             drone_trx_system(
-                trx_system_type, 
+                general_config.model_config().trx_system_type(), 
                 drone_tx_control_area_radius, 
                 drone_gps_rx_signal_level
             )
@@ -557,7 +543,7 @@ pub fn signal_loss_response(
         .set_power_system(device_power_system())
         .set_trx_system(
             ewd_trx_system(
-                trx_system_type,
+                general_config.model_config().trx_system_type(),
                 CONTROL_FREQUENCY,
                 control_ewd_suppression_area_radius
             )
@@ -571,15 +557,15 @@ pub fn signal_loss_response(
         .set_command_center_id(command_center_id)
         .set_device_map(IdToDeviceMap::from(devices.as_slice()))
         .set_attacker_devices(attacker_devices)
-        .set_gps(default_gps(trx_system_type))
-        .set_topology(topology)
+        .set_gps(default_gps(general_config.model_config().trx_system_type()))
+        .set_topology(general_config.model_config().topology())
         .set_scenario(attack_scenario())
         .set_delay_multiplier(general_config.model_config().delay_multiplier())
         .build();
  
     let output_filename = derive_filename(
-        trx_system_type,
-        topology,
+        general_config.model_config().trx_system_type(),
+        general_config.model_config().topology(),
         "signal_loss_response"
     ); 
     let axes_ranges     = Axes3DRanges::new(0.0..100.0, 0.0..100.0, 0.0..100.0);

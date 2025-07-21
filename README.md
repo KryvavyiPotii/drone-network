@@ -15,11 +15,11 @@ It is a reimagined and enhanced version of [drone-network-proto](https://github.
 
 ## Usage
 
-```shell
+```console
 $ drone_network -h
 Models drone networks.
 
-Usage: drone_network-x64-linux [OPTIONS] --trx <trx system type> --topology <network topology>
+Usage: drone_network [OPTIONS] --trx <trx system type> --topology <network topology>
 
 Options:
   -x, --experiment <experiment title>
@@ -28,9 +28,9 @@ move, signalloss]
       --im <network model path>
           Deserialize network model from `.json` file and use it
       --trx <trx system type>
-          Choose device TRX system type [possible values: both, color, strength]
+          Choose device TRX system type [possible values: color, strength]
   -t, --topology <network topology>
-          Choose network topology [possible values: both, mesh, star]
+          Choose network topology [possible values: mesh, star]
   -n <drone count>
           Set the number of drones in the network (non-negative integer) [default: 100]
   -d, --delay-multiplier <delay multiplier>
