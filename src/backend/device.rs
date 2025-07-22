@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use super::{CONTROL_FREQUENCY, DESTINATION_RADIUS, ITERATION_TIME};
-use super::malware::{InfectionState, Malware, MalwareToStateMap, MalwareType};
+use super::malware::{InfectionMap, Malware, MalwareType};
 use super::mathphysics::{
     equation_of_motion_3d, millis_to_secs, Megahertz, Meter, MeterPerSecond, 
     Millisecond, Point3D, Position, PowerUnit
@@ -17,7 +17,8 @@ use super::signal::{
 use super::task::{Task, TaskType};
 
 use systems::{
-    MovementSystem, PowerSystem, PowerSystemError, TRXSystem, TRXSystemError
+    MovementSystem, PowerSystem, PowerSystemError, SecuritySystem, TRXSystem, 
+    TRXSystemError
 };
 
 
@@ -76,7 +77,7 @@ pub struct DeviceBuilder {
     power_system: Option<PowerSystem>,
     movement_system: Option<MovementSystem>,
     trx_system: Option<TRXSystem>,
-    vulnerabilities: Option<Vec<Malware>>,
+    security_system: Option<SecuritySystem>,
     signal_loss_response: Option<SignalLossResponse>,
 }
 
@@ -89,7 +90,7 @@ impl DeviceBuilder {
             power_system: None,
             movement_system: None,
             trx_system: None,
-            vulnerabilities: None,
+            security_system: None,
             signal_loss_response: None,
         }
     }
@@ -129,13 +130,13 @@ impl DeviceBuilder {
         self.trx_system = Some(trx_system);
         self
     }
-
+    
     #[must_use]
-    pub fn set_vulnerabilities(
+    pub fn set_security_system(
         mut self, 
-        vulnerabilities: &[Malware]
+        security_system: SecuritySystem
     ) -> Self {
-        self.vulnerabilities = Some(vulnerabilities.to_vec());
+        self.security_system = Some(security_system);
         self
     }
 
@@ -157,7 +158,7 @@ impl DeviceBuilder {
             self.power_system.unwrap_or_default(),
             self.movement_system.unwrap_or_default(),
             self.trx_system.unwrap_or_default(),
-            self.vulnerabilities.unwrap_or_default().as_ref(),
+            self.security_system.unwrap_or_default(),
             self.signal_loss_response.unwrap_or_default(),
         )
     }
@@ -179,7 +180,8 @@ pub struct Device {
     power_system: PowerSystem,
     movement_system: MovementSystem,
     trx_system: TRXSystem,
-    infection_states: MalwareToStateMap,
+    security_system: SecuritySystem,
+    infection_map: InfectionMap,
     signal_loss_response: SignalLossResponse,
 }
 
@@ -192,14 +194,9 @@ impl Device {
         power_system: PowerSystem,
         movement_system: MovementSystem,
         trx_system: TRXSystem,
-        vulnerabilities: &[Malware],
+        security_system: SecuritySystem,
         signal_loss_response: SignalLossResponse,
     ) -> Self {
-        let infection_states = vulnerabilities
-            .iter()
-            .map(|malware| (*malware, (0, InfectionState::Vulnerable)))
-            .collect();
-
         Self {
             id,
             current_time: 0,
@@ -208,7 +205,8 @@ impl Device {
             power_system,
             movement_system,
             trx_system,
-            infection_states,
+            security_system,
+            infection_map: InfectionMap::default(),
             signal_loss_response,
         }
     }
@@ -226,6 +224,11 @@ impl Device {
     #[must_use]
     pub fn gps_position(&self) -> &Point3D {
         self.movement_system.position()
+    }
+    
+    #[must_use]
+    pub fn infection_map(&self) -> &InfectionMap {
+        &self.infection_map
     }
     
     #[must_use]
@@ -270,40 +273,15 @@ impl Device {
     }
 
     #[must_use]
-    pub fn infection_states(&self) -> &MalwareToStateMap {
-        &self.infection_states
-    }   
-
-    #[must_use]
     pub fn is_infected(&self) -> bool {
-        self.infection_states
-            .values()
-            .any(|infection_state| 
-                matches!(infection_state, (_, InfectionState::Infected))
-            )
+        !self.infection_map.is_empty()
     }
     
     #[must_use]
     pub fn is_infected_with(&self, malware: &Malware) -> bool {
-        matches!(
-            self.infection_states.get(malware),
-            Some((_, InfectionState::Infected)),
-        )
+        self.infection_map.contains_key(malware)
     }
 
-    #[must_use]
-    pub fn malware_infections(&self) -> Vec<(Millisecond, Malware)> {
-        self.infection_states
-            .iter()
-            .filter_map(|(malware, (time, infection_state))| 
-                match infection_state {
-                    InfectionState::Infected => Some((*time, *malware)),
-                    _ => None
-                }
-            )
-            .collect()
-    }
-    
     #[must_use]
     pub fn is_shut_down(&self) -> bool {
         self.power_system.power() == 0
@@ -429,26 +407,12 @@ impl Device {
     }
 
     fn process_malware(&mut self, malware: &Malware) {
-        if matches!(
-            self.infection_state_on(malware), 
-            InfectionState::Vulnerable
-        ) {
-            self.infection_states.insert(
-                *malware, 
-                (self.current_time, InfectionState::Infected)
-            );
+        if !self.infection_map.contains_key(malware) 
+            && !self.security_system.patches().contains(malware) 
+        {
+            self.infection_map.insert(*malware, self.current_time);
             self.info_infected(malware);
         }
-    }
-    
-    fn infection_state_on(
-        &self,
-        malware: &Malware
-    ) -> &InfectionState {
-        &self.infection_states
-            .get(malware)
-            .unwrap_or(&(0, InfectionState::Patched))
-            .1
     }
    
     fn try_consume_power(
@@ -566,11 +530,21 @@ impl Device {
     }
 
     fn handle_malware_infections(&mut self) {
-        for (infection_time, malware) in &self.malware_infections() {
-            if self.current_time != infection_time + malware.infection_delay() {
-                continue;
-            }
+        let malware_infections: Vec<Malware> = self.infection_map
+            .iter()
+            .filter_map(|(malware, infection_time)| {
+                let malicious_payload_execution_time = infection_time 
+                    + malware.infection_delay();
 
+                if self.current_time == malicious_payload_execution_time {
+                    Some(*malware)
+                } else {
+                    None
+                }
+            })
+            .collect();
+
+        for malware in malware_infections {
             match malware.malware_type() {
                 MalwareType::DoS(lost_power) => {
                     let _ = self.try_consume_power(*lost_power);
@@ -629,7 +603,8 @@ impl Default for Device {
             power_system: PowerSystem::default(),
             movement_system: MovementSystem::default(),
             trx_system: TRXSystem::default(),
-            infection_states: MalwareToStateMap::default(),
+            security_system: SecuritySystem::default(),
+            infection_map: InfectionMap::default(),
             signal_loss_response: SignalLossResponse::default(),
         }
     }
@@ -654,6 +629,7 @@ mod tests {
 
     const DRONE_TX_CONTROL_RADIUS: Meter = 10.0;
     const DEVICE_MAX_POWER: PowerUnit    = 10_000;
+    const MAX_ITER_COUNT: usize          = 10_000;
     const SOME_DEVICE_ID: DeviceId       = 5;
     
 
@@ -698,6 +674,22 @@ mod tests {
 
     fn indicator_malware() -> Malware {
         Malware::new(MalwareType::Indicator, 0, None)
+    }
+
+    fn send_signal_until_it_is_received(
+        receiver: &mut Device, 
+        signal: Signal,
+        time: Millisecond
+    ) {
+        let mut result = receiver.receive_signal(signal, time);
+        
+        for _ in 0..MAX_ITER_COUNT {
+            if result.is_ok() {
+                return;
+            }
+        
+            result = receiver.receive_signal(signal, time);
+        }
     }
 
 
@@ -892,8 +884,10 @@ mod tests {
                 RED_SIGNAL_LEVEL,
             );
             
-            assert!(
-                device_without_signal.receive_signal(gps_signal, time).is_ok()
+            send_signal_until_it_is_received(
+                &mut device_without_signal,
+                gps_signal,
+                time
             );
             let _ = device_without_signal.update();
         }
@@ -1027,7 +1021,7 @@ mod tests {
                 RED_SIGNAL_LEVEL,
             );
             
-            assert!(device.receive_signal(gps_signal, time).is_ok()); 
+            send_signal_until_it_is_received(&mut device, gps_signal, time);
             assert!(device.update().is_ok());
         }
 
@@ -1080,8 +1074,9 @@ mod tests {
             CONTROL_FREQUENCY, 
             RED_SIGNAL_LEVEL, 
         );
+        let time = 0;
 
-        assert!(device.receive_signal(signal, 0).is_ok());
+        send_signal_until_it_is_received(&mut device, signal, time);
         assert!(device.process_received_signals().is_ok());
         assert_eq!(task, device.task);
     }
@@ -1107,8 +1102,9 @@ mod tests {
             GPS_L1_FREQUENCY,
             RED_SIGNAL_LEVEL,
         );
+        let time = 0;
 
-        assert!(device.receive_signal(gps_signal, 0).is_ok());
+        send_signal_until_it_is_received(&mut device, gps_signal, time);
         assert!(device.process_received_signals().is_ok());
         assert_eq!(device.real_position_in_meters, global_position);
         assert_eq!(device.gps_position(), gps_position);
@@ -1133,8 +1129,10 @@ mod tests {
             CONTROL_FREQUENCY, 
             RED_SIGNAL_LEVEL, 
         );
+        let time = 0;
 
-        assert!(device.receive_signal(signal, 0).is_ok());
+        send_signal_until_it_is_received(&mut device, signal, time);
+        
         assert!(device.process_received_signals().is_ok());
         assert_eq!(task, device.task);
     }
@@ -1169,6 +1167,7 @@ mod tests {
         let mut device = DeviceBuilder::new()
             .set_power_system(device_power_system())
             .set_trx_system(drone_green_trx_system())
+            .set_security_system(SecuritySystem::new(vec![malware]))
             .build(); 
         
         let signal = Signal::new(
@@ -1178,26 +1177,15 @@ mod tests {
             CONTROL_FREQUENCY, 
             RED_SIGNAL_LEVEL, 
         );
+        let time = 0;
 
         assert!(!device.is_infected());
         assert!(!device.is_infected_with(&malware));
-        assert!(
-            matches!(
-                device.infection_state_on(&malware),
-                InfectionState::Patched
-            )
-        );
 
-        assert!(device.receive_signal(signal, 0).is_ok());
+        send_signal_until_it_is_received(&mut device, signal, time);
         
         assert!(!device.is_infected());
         assert!(!device.is_infected_with(&malware));
-        assert!(
-            matches!(
-                device.infection_state_on(&malware),
-                InfectionState::Patched
-            )
-        );
     }
 
     #[test]
@@ -1206,7 +1194,6 @@ mod tests {
         let mut device = DeviceBuilder::new()
             .set_power_system(device_power_system())
             .set_trx_system(drone_green_trx_system())
-            .set_vulnerabilities(&[malware])
             .build(); 
         
         let signal = Signal::new(
@@ -1216,26 +1203,16 @@ mod tests {
             CONTROL_FREQUENCY,
             RED_SIGNAL_LEVEL, 
         );
+        let time = 0;
 
         assert!(!device.is_infected());
         assert!(!device.is_infected_with(&malware));
-        assert!(
-            matches!(
-                device.infection_state_on(&malware),
-                InfectionState::Vulnerable
-            )
-        );
+        assert!(!device.security_system.patches().contains(&malware),);
 
-        assert!(device.receive_signal(signal, 0).is_ok());
+        send_signal_until_it_is_received(&mut device, signal, time);
         assert!(device.process_received_signals().is_ok());
 
         assert!(device.is_infected());
         assert!(device.is_infected_with(&malware));
-        assert!(
-            matches!(
-                device.infection_state_on(&malware),
-                InfectionState::Infected
-            )
-        );
     }
 }

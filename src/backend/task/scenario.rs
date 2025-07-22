@@ -71,7 +71,7 @@ impl<const N: usize> From<[ScenarioEntry; N]> for Scenario {
 
 #[cfg(test)]
 mod tests {
-    use crate::task::TaskType;
+    use crate::backend::task::TaskType;
     
     use super::*;
 

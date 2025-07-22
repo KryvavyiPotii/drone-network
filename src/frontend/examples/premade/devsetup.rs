@@ -4,79 +4,45 @@ use rand::prelude::*;
 
 use crate::backend::CONTROL_FREQUENCY;
 use crate::backend::device::{
-    Device, DeviceBuilder, SignalLossResponse, MAX_DRONE_SPEED 
+    Device, DeviceBuilder, SignalLossResponse, BROADCAST_ID, MAX_DRONE_SPEED 
 };
 use crate::backend::device::systems::{
-    MovementSystem, PowerSystem, RXModule, TRXSystem, TXModule, TRXSystemType
+    MovementSystem, PowerSystem, RXModule, SecuritySystem, TRXSystem, TXModule, 
+    TRXSystemType
 };
-use crate::backend::malware::Malware;
+use crate::backend::malware::{Malware, MalwareType};
 use crate::backend::mathphysics::{Megahertz, Meter, Point3D, PowerUnit};
 use crate::backend::networkmodel::gps::GPS;
 use crate::backend::signal::{
     FreqToLevelMap, SignalArea, SignalLevel, GPS_L1_FREQUENCY, 
     GREEN_SIGNAL_LEVEL 
 };
+use crate::backend::task::{Scenario, Task, TaskType};
+use crate::frontend::{MALWARE_INFECTION_DELAY, MALWARE_SPREAD_DELAY};
 
 
 pub const DEVICE_MAX_POWER: PowerUnit = 100_000;
 pub const NETWORK_ORIGIN: Point3D     = Point3D { x: 150.3, y: 90.6, z: 25.5 };
+pub const CC_POSITION: Point3D        = Point3D { x: 200.0, y: 100.0, z: 0.0 };
 
-
-const VULNERABILITY_PROBABILITY: f64 = 1.0;
-
-const GPS_TX_RADIUS: Meter = 350.0;
 const DEFAULT_GPS_POSITION_IN_METERS: Point3D = Point3D { 
     x: NETWORK_ORIGIN.x, 
     y: NETWORK_ORIGIN.y, 
     z: 200.0
 };
+const DRONE_DESTINATION: Point3D  = Point3D { x: 0.0, y: 0.0, z: 0.0 };
+const GPS_TX_RADIUS: Meter = 350.0;
+const PATCH_PROBABILITY: f64 = 0.0;
 
-
-pub fn generate_drone_positions(
-    drone_count: usize,
-    network_position: &NetworkPosition,
-) -> Vec<Point3D> {
-    let mut rng = rand::rng();
-
-    (1..=drone_count)
-        .map(|_| {
-            let random_offset = Point3D::new(
-                rng.random_range(network_position.x_offset_range.clone()),
-                rng.random_range(network_position.y_offset_range.clone()),
-                rng.random_range(network_position.z_offset_range.clone())
-            );
-            
-            network_position.origin + random_offset
-        })
-        .collect()
-}
-
-pub fn generate_drone_vulnerabilities(
-    drone_count: usize,
-    vulnerabilities: &[Malware],
-) -> Vec<Vec<Malware>> {
-    (1..=drone_count)
-        .map(|_| {
-            if rand::random_bool(VULNERABILITY_PROBABILITY) {
-                Vec::from(vulnerabilities)
-            } else {
-                Vec::new()
-            }
-        })
-        .collect()
-}
 
 pub fn create_drone_vec(
     drone_count: usize, 
-    drone_positions: &[Point3D],
-    vulnerabilities: &[Vec<Malware>],
+    network_position: &NetworkPosition,
+    malware: Option<Malware>,
     trx_system_type: TRXSystemType,
     tx_control_area_radius: Meter,
     max_gps_rx_signal_level: SignalLevel,
 ) -> Vec<Device> {
-    assert_eq!(drone_count, drone_positions.len());
-    assert_eq!(drone_count, vulnerabilities.len());
-
     let power_system    = device_power_system();
     let movement_system = device_movement_system();
     let trx_system      = drone_trx_system(
@@ -84,6 +50,11 @@ pub fn create_drone_vec(
         tx_control_area_radius,
         max_gps_rx_signal_level
     );
+    let patches = match malware {
+        Some(malware) => vec![malware],
+        None          => Vec::new(),
+    };
+    let security_system = SecuritySystem::new(patches);
 
     let drone_builder = DeviceBuilder::new()
         .set_power_system(power_system)
@@ -92,15 +63,32 @@ pub fn create_drone_vec(
         .set_signal_loss_response(SignalLossResponse::Hover);
 
     (0..drone_count)
-        .map(|i| {
-            let drone_builder = drone_builder.clone();
+        .map(|_| {
+            let drone_builder = if rand::random_bool(PATCH_PROBABILITY) {
+                drone_builder
+                    .clone()
+                    .set_security_system(security_system.clone())
+            } else { 
+                drone_builder.clone()
+            };
 
             drone_builder
-                .set_real_position(drone_positions[i])
-                .set_vulnerabilities(&vulnerabilities[i])
+                .set_real_position(generate_drone_position(network_position))
                 .build()
         })  
         .collect()
+}
+
+fn generate_drone_position(network_position: &NetworkPosition) -> Point3D {
+    let mut rng = rand::rng();
+
+    let random_offset = Point3D::new(
+        rng.random_range(network_position.x_offset_range.clone()),
+        rng.random_range(network_position.y_offset_range.clone()),
+        rng.random_range(network_position.z_offset_range.clone())
+    );
+    
+    network_position.origin + random_offset
 }
 
 pub fn cc_trx_system(
@@ -186,6 +174,55 @@ pub fn device_power_system() -> PowerSystem {
 pub fn device_movement_system() -> MovementSystem {
     MovementSystem::build(MAX_DRONE_SPEED)
         .unwrap_or_else(|error| panic!("{}", error))
+}
+
+pub fn default_network_position(network_origin: Point3D) -> NetworkPosition {
+    NetworkPosition::new(
+        network_origin,
+        -40.0..40.0,
+        -40.0..40.0,
+        -20.0..20.0,
+    )
+}
+
+pub fn attack_scenario() -> Scenario {
+    let attack_task = Task::new(
+        TaskType::Attack,
+        Some(DRONE_DESTINATION)
+    );
+
+    Scenario::from([(0, BROADCAST_ID, attack_task)])
+}
+
+pub fn reposition_scenario() -> Scenario {
+    let task1 = Task::new(
+        TaskType::Reposition,
+        Some(DRONE_DESTINATION)
+    );
+    let task2 = Task::new(
+        TaskType::Reposition,
+        Some(Point3D::new(0.0, 0.0, 150.0))
+    );
+    let task3 = Task::new(
+        TaskType::Reposition,
+        Some(Point3D::new(0.0, 150.0, 150.0))
+    );
+    let task4 = task1;
+
+    Scenario::from([
+        (0, BROADCAST_ID, task1),
+        (250, BROADCAST_ID, task2),
+        (4000, BROADCAST_ID, task3),
+        (6000, BROADCAST_ID, task4),
+    ])
+}
+
+pub fn indicator_malware() -> Malware {
+    Malware::new(
+        MalwareType::Indicator, 
+        MALWARE_INFECTION_DELAY,
+        MALWARE_SPREAD_DELAY
+    )
 }
 
 

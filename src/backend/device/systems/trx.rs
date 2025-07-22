@@ -35,7 +35,6 @@ pub enum TRXSystemType {
 }
 
 
-// By default a non-functioning strength TRXSystem is created.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct TRXSystem {
     trx_system_type: TRXSystemType,

@@ -1,18 +1,16 @@
 use crate::backend::CONTROL_FREQUENCY;
 use crate::backend::connections::Topology;
 use crate::backend::device::{
-    Device, DeviceBuilder, IdToDeviceMap, SignalLossResponse, BROADCAST_ID, 
+    Device, DeviceBuilder, IdToDeviceMap, SignalLossResponse
 };
 use crate::backend::device::systems::TRXSystemType;
-use crate::backend::malware::{Malware, MalwareType};
+use crate::backend::malware::MalwareType;
 use crate::backend::mathphysics::Point3D;
 use crate::backend::networkmodel::NetworkModelBuilder; 
 use crate::backend::networkmodel::attack::{AttackType, AttackerDevice};
 use crate::backend::signal::{
     SignalLevel, GPS_L1_FREQUENCY, GREEN_SIGNAL_LEVEL, RED_SIGNAL_LEVEL
 };
-use crate::backend::task::{Scenario, Task, TaskType};
-use crate::frontend::{MALWARE_INFECTION_DELAY, MALWARE_SPREAD_DELAY};
 use crate::frontend::config::GeneralConfig;
 use crate::frontend::player::ModelPlayer;
 use crate::frontend::renderer::{
@@ -20,47 +18,19 @@ use crate::frontend::renderer::{
     DEFAULT_AXES_RANGE, DEFAULT_CAMERA_ANGLE, DEFAULT_DEVICE_COLORING
 };
 
-use super::devsetup::{
-    cc_trx_system, create_drone_vec, default_gps, device_movement_system, 
-    device_power_system, drone_trx_system, ewd_trx_system 
+use devsetup::{
+    attack_scenario, cc_trx_system, create_drone_vec, default_gps, 
+    default_network_position, device_movement_system, device_power_system, 
+    drone_trx_system, ewd_trx_system, indicator_malware, reposition_scenario,
+    CC_POSITION, NETWORK_ORIGIN
 };
 
 
-const COMMAND_CENTER_POSITION: Point3D = Point3D { x: 200.0, y: 100.0, z: 0.0 };
-const DRONE_DESTINATION: Point3D       = Point3D { x: 0.0, y: 0.0, z: 0.0 };
+pub use devsetup::DEVICE_MAX_POWER;
 
 
-fn attack_scenario() -> Scenario {
-    let attack_task = Task::new(
-        TaskType::Attack,
-        Some(DRONE_DESTINATION)
-    );
+mod devsetup;
 
-    Scenario::from([(0, BROADCAST_ID, attack_task)])
-}
-
-fn reposition_scenario() -> Scenario {
-    let task1 = Task::new(
-        TaskType::Reposition,
-        Some(DRONE_DESTINATION)
-    );
-    let task2 = Task::new(
-        TaskType::Reposition,
-        Some(Point3D::new(0.0, 0.0, 150.0))
-    );
-    let task3 = Task::new(
-        TaskType::Reposition,
-        Some(Point3D::new(0.0, 150.0, 150.0))
-    );
-    let task4 = task1;
-
-    Scenario::from([
-        (0, BROADCAST_ID, task1),
-        (250, BROADCAST_ID, task2),
-        (4000, BROADCAST_ID, task3),
-        (6000, BROADCAST_ID, task4),
-    ])
-}
 
 fn derive_filename(
     trx_system_type: TRXSystemType, 
@@ -79,27 +49,15 @@ fn derive_filename(
     format!("{trx_system_part}_{text}_{topology_part}.gif")
 }
 
-pub fn indicator_malware() -> Malware {
-    Malware::new(
-        MalwareType::Indicator, 
-        MALWARE_INFECTION_DELAY,
-        MALWARE_SPREAD_DELAY
-    )
-}
 
-
-pub fn gps_only(
-    general_config: &GeneralConfig,
-    drone_positions: &[Point3D],
-    vulnerabilities: &[Vec<Malware>],
-) {
+pub fn gps_only(general_config: &GeneralConfig) {
     let cc_tx_control_area_radius    = 300.0;
     let drone_tx_control_area_radius = 50.0;
     let drone_gps_rx_signal_level    = RED_SIGNAL_LEVEL; 
     let ewd_suppression_area_radius  = 50.0; 
         
     let command_center = DeviceBuilder::new()
-        .set_real_position(COMMAND_CENTER_POSITION)
+        .set_real_position(CC_POSITION)
         .set_power_system(device_power_system())
         .set_trx_system(
             cc_trx_system(
@@ -113,8 +71,8 @@ pub fn gps_only(
 
     let mut devices = create_drone_vec(
         general_config.model_config().drone_count(),
-        drone_positions,
-        vulnerabilities,
+        &default_network_position(NETWORK_ORIGIN),
+        general_config.model_config().malware(),
         general_config.model_config().trx_system_type(),
         drone_tx_control_area_radius, 
         drone_gps_rx_signal_level, 
@@ -170,17 +128,13 @@ pub fn gps_only(
     model_player.play();
 }
 
-pub fn movement(
-    general_config: &GeneralConfig,
-    drone_positions: &[Point3D],
-    vulnerabilities: &[Vec<Malware>],
-) {
+pub fn movement(general_config: &GeneralConfig) {
     let cc_tx_control_area_radius    = 300.0;
     let drone_tx_control_area_radius = 50.0;
     let drone_gps_rx_signal_level    = SignalLevel::from(10_000.0); 
 
     let command_center = DeviceBuilder::new()
-        .set_real_position(COMMAND_CENTER_POSITION)
+        .set_real_position(CC_POSITION)
         .set_power_system(device_power_system())
         .set_trx_system(
             cc_trx_system(
@@ -193,13 +147,13 @@ pub fn movement(
     let command_center_id = command_center.id();
 
     let mut devices = create_drone_vec(
-        general_config.model_config().drone_count(), 
-        drone_positions,
-        vulnerabilities,
+        general_config.model_config().drone_count(),
+        &default_network_position(NETWORK_ORIGIN),
+        general_config.model_config().malware(),
         general_config.model_config().trx_system_type(),
-        drone_tx_control_area_radius,
-        drone_gps_rx_signal_level,
-    ); 
+        drone_tx_control_area_radius, 
+        drone_gps_rx_signal_level, 
+    );
     devices.insert(0, command_center);
     
     let drone_network = NetworkModelBuilder::new()
@@ -235,18 +189,14 @@ pub fn movement(
     model_player.play();
 }
 
-pub fn gps_spoofing(
-    general_config: &GeneralConfig,
-    drone_positions: &[Point3D],
-    vulnerabilities: &[Vec<Malware>],
-) {
+pub fn gps_spoofing(general_config: &GeneralConfig) {
     let cc_tx_control_area_radius    = 300.0;
     let drone_tx_control_area_radius = 50.0;
     let drone_gps_rx_signal_level    = RED_SIGNAL_LEVEL; 
     let gps_spoofing_area_radius     = 100.0; 
         
     let command_center = DeviceBuilder::new()
-        .set_real_position(COMMAND_CENTER_POSITION)
+        .set_real_position(CC_POSITION)
         .set_power_system(device_power_system())
         .set_trx_system(
             cc_trx_system(
@@ -260,12 +210,12 @@ pub fn gps_spoofing(
 
     let mut devices = create_drone_vec(
         general_config.model_config().drone_count(),
-        drone_positions,
-        vulnerabilities,
+        &default_network_position(NETWORK_ORIGIN),
+        general_config.model_config().malware(),
         general_config.model_config().trx_system_type(),
         drone_tx_control_area_radius, 
         drone_gps_rx_signal_level, 
-    ); 
+    );
     devices.insert(0, command_center);
 
     let ewd_gps = DeviceBuilder::new()
@@ -320,11 +270,7 @@ pub fn gps_spoofing(
     model_player.play();
 }
 
-pub fn malware_infection(
-    general_config: &GeneralConfig,
-    drone_positions: &[Point3D],
-    vulnerabilities: &[Vec<Malware>],
-) {
+pub fn malware_infection(general_config: &GeneralConfig) {
     let cc_tx_control_area_radius    = 200.0;
     let drone_tx_control_area_radius = 15.0;
     let drone_gps_rx_signal_level    = GREEN_SIGNAL_LEVEL; 
@@ -342,18 +288,17 @@ pub fn malware_infection(
             )
         )
         .set_signal_loss_response(SignalLossResponse::Ignore)
-        .set_vulnerabilities(&[malware])
         .build();
     let command_center_id = command_center.id();
 
     let mut devices = create_drone_vec(
         general_config.model_config().drone_count(),
-        drone_positions,
-        vulnerabilities,
+        &default_network_position(Point3D::new(50.0, 50.0, 0.0)),
+        general_config.model_config().malware(),
         general_config.model_config().trx_system_type(),
-        drone_tx_control_area_radius,
-        drone_gps_rx_signal_level,
-    ); 
+        drone_tx_control_area_radius, 
+        drone_gps_rx_signal_level, 
+    );
     devices.insert(0, command_center);
     
     let attacker = DeviceBuilder::new()
@@ -471,11 +416,7 @@ pub fn malware_propagation(
     model_player.play();
 }
 
-pub fn signal_loss_response(
-    general_config: &GeneralConfig,
-    _drone_positions: &[Point3D],
-    _vulnerabilities: &[Vec<Malware>],
-) {
+pub fn signal_loss_response(general_config: &GeneralConfig) {
     let cc_tx_control_area_radius    = 200.0;
     let drone_tx_control_area_radius = 50.0;
     let drone_gps_rx_signal_level    = GREEN_SIGNAL_LEVEL; 
@@ -528,7 +469,6 @@ pub fn signal_loss_response(
     let shutdown_drone = drone_builder
         .set_signal_loss_response(SignalLossResponse::Shutdown)
         .build();
-
     let devices = [
         command_center, 
         ascend_drone, 
