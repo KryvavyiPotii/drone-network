@@ -19,7 +19,7 @@ It is a reimagined and enhanced version of [drone-network-proto](https://github.
 $ drone_network -h
 Models drone networks.
 
-Usage: drone_network [OPTIONS] --trx <trx system type> --topology <network topology>
+Usage: drone_network-x64-linux [OPTIONS] --trx <trx system type> --topology <network topology>
 
 Options:
   -x, --experiment <experiment title>
@@ -41,6 +41,8 @@ move, signalloss]
           Choose infection type ("malware" experiment) [possible values: dos, indicator]
       --od <output directory path>
           Serialize network model data on each iteration to specified directory
+      --no-plot
+          Do not render a GIF plot
   -c, --caption <plot caption>
           Set the plot caption [default: ]
       --width <plot width>
