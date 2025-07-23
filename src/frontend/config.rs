@@ -11,47 +11,48 @@ use crate::frontend::renderer::{
 
 
 pub struct GeneralConfig {
-    model: ModelConfig,
-    model_player: ModelPlayerConfig,
-    render: RenderConfig,
+    model_config: ModelConfig,
+    model_player_config: ModelPlayerConfig,
 }
 
 impl GeneralConfig {
     #[must_use]
     pub fn new(
-        model: ModelConfig,
-        model_player: ModelPlayerConfig,
-        render: RenderConfig,
+        model_config: ModelConfig,
+        model_player_config: ModelPlayerConfig,
     ) -> Self {
         Self {
-            model,
-            model_player,
-            render,
+            model_config,
+            model_player_config,
         }
     }
     
     #[must_use]
     pub fn model_config(&self) -> &ModelConfig {
-        &self.model
+        &self.model_config
     }
     
     #[must_use]
     pub fn model_player_config(&self) -> &ModelPlayerConfig {
-        &self.model_player
+        &self.model_player_config
     }
     
     #[must_use]
-    pub fn render_config(&self) -> &RenderConfig {
-        &self.render
-    }
-
-    #[must_use]
     pub fn malware_list(&self, indicator_malware: Malware) -> Vec<Malware> {
-        match self.model.malware {
-            Some(malware) if self.render.display_malware_propagation =>
+        match self.model_config.malware {
+            Some(malware) if self.display_malware_propagation() =>
                 vec![malware, indicator_malware],
             Some(malware) => vec![malware],
             None          => Vec::new()
+        }
+    }
+
+    #[must_use]
+    pub fn display_malware_propagation(&self) -> bool {
+        if let Some(render_config) = &self.model_player_config.render_config {
+            render_config.display_malware_propagation
+        } else {
+            false
         }
     }
 }
@@ -113,6 +114,7 @@ impl ModelConfig {
 
 pub struct ModelPlayerConfig {
     output_directory: Option<PathBuf>,
+    render_config: Option<RenderConfig>,
     simulation_time: Millisecond,
 }
 
@@ -120,10 +122,12 @@ impl ModelPlayerConfig {
     #[must_use]
     pub fn new(
         output_directory: Option<&Path>,
+        render_config: Option<RenderConfig>,
         simulation_time: Millisecond,
     ) -> Self {
         Self {
             output_directory: output_directory.map(Path::to_path_buf),
+            render_config,
             simulation_time,
         }
     }
@@ -131,6 +135,11 @@ impl ModelPlayerConfig {
     #[must_use]
     pub fn output_directory(&self) -> Option<&Path> {
         self.output_directory.as_deref()
+    }
+
+    #[must_use]
+    pub fn render_config(&self) -> Option<&RenderConfig> {
+        self.render_config.as_ref()
     }
    
     #[must_use]

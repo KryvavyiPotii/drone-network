@@ -17,7 +17,7 @@ mod output;
 pub struct ModelPlayer<'a> {
     output_directory: Option<PathBuf>,
     network_model: NetworkModel,
-    renderer: PlottersRenderer<'a>,
+    renderer: Option<PlottersRenderer<'a>>,
     current_time: Millisecond,
     end_time: Millisecond,
 }
@@ -27,7 +27,7 @@ impl<'a> ModelPlayer<'a> {
     pub fn new(
         output_directory: Option<&Path>,
         network_model: NetworkModel,
-        renderer: PlottersRenderer<'a>,
+        renderer: Option<PlottersRenderer<'a>>,
         end_time: Millisecond,
     ) -> Self {
         Self {
@@ -58,7 +58,9 @@ impl<'a> ModelPlayer<'a> {
 
             self.network_model.update();
 
-            self.renderer.render(&self.network_model);
+            if let Some(ref mut renderer) = self.renderer {
+                renderer.render(&self.network_model);
+            }
                         
             self.current_time += ITERATION_TIME;
         }
@@ -67,10 +69,12 @@ impl<'a> ModelPlayer<'a> {
     }
 
     fn start_info(&self) {
-        info!(
-            "Rendering in {}", 
-            self.renderer.output_filename()
-        );
+        self.renderer
+            .as_ref()
+            .inspect(|renderer| {
+                info!("Rendering in {}", renderer.output_filename());
+            });
+
         info!(
             "Initial device count: {}", 
             self.network_model.device_map().len()
@@ -86,9 +90,10 @@ impl<'a> ModelPlayer<'a> {
             "Conclusive device count: {}", 
             self.network_model.device_map().len()
         );
-        info!(
-            "Render filename: {}", 
-            self.renderer.output_filename()
-        );
+        self.renderer
+            .as_ref()
+            .inspect(|renderer| {
+                info!("Render filename: {}", renderer.output_filename());
+            });
     }
 }

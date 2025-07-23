@@ -24,6 +24,7 @@ pub const ARG_EXPERIMENT_TITLE: &str = "experiment title";
 pub const ARG_INPUT_MODEL: &str      = "network model path";
 pub const ARG_MALWARE_TYPE: &str     = "malware type";
 pub const ARG_NETWORK_TOPOLOGY: &str = "network topology";
+pub const ARG_NO_PLOT: &str          = "no GIF rendering";
 pub const ARG_OUTPUT_DIR: &str       = "output directory path";
 pub const ARG_PLOT_CAPTION: &str     = "plot caption";
 pub const ARG_PLOT_HEIGHT: &str      = "plot height";
@@ -87,7 +88,6 @@ pub fn handle_arguments(matches: &ArgMatches) {
         &GeneralConfig::new(
             model_config,
             model_player_config(matches),
-            render_config(matches)
         )
     );
 }
@@ -103,8 +103,15 @@ fn model_config(matches: &ArgMatches) -> ModelConfig {
 }
 
 fn model_player_config(matches: &ArgMatches) -> ModelPlayerConfig {
+    let render_config = if no_rendering(matches) {
+        None
+    } else {
+        Some(render_config(matches))
+    };
+
     ModelPlayerConfig::new(
         output_directory(matches), 
+        render_config,
         simulation_time(matches),
     )
 }
@@ -189,6 +196,12 @@ fn output_directory(matches: &ArgMatches) -> Option<&Path> {
 fn simulation_time(matches: &ArgMatches) -> Millisecond {
     *matches
         .get_one::<Millisecond>(ARG_SIM_TIME)
+        .unwrap()
+}
+
+fn no_rendering(matches: &ArgMatches) -> bool {
+    *matches
+        .get_one::<bool>(ARG_NO_PLOT)
         .unwrap()
 }
 

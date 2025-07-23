@@ -32,7 +32,6 @@ impl Example {
             custom(
                 model_path, 
                 general_config.model_player_config(), 
-                general_config.render_config()
             );
             return;
         } 

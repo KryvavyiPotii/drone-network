@@ -104,19 +104,25 @@ pub fn gps_only(general_config: &GeneralConfig) {
         .set_delay_multiplier(general_config.model_config().delay_multiplier())
         .build();
 
-    let output_filename = derive_filename(
-        general_config.model_config().trx_system_type(), 
-        general_config.model_config().topology(), 
-        "gps_only"
-    );
-    let renderer       = PlottersRenderer::new(
-        &output_filename,
-        general_config.render_config().plot_caption(),
-        general_config.render_config().plot_resolution(),
-        DEFAULT_AXES_RANGE,
-        DEFAULT_DEVICE_COLORING,
-        DEFAULT_CAMERA_ANGLE,
-    );
+    let renderer = general_config
+        .model_player_config()
+        .render_config()
+        .map(|render_config| { 
+            let output_filename = derive_filename(
+                general_config.model_config().trx_system_type(), 
+                general_config.model_config().topology(), 
+                "gps_only"
+            );
+            
+            PlottersRenderer::new(
+                &output_filename,
+                render_config.plot_caption(),
+                render_config.plot_resolution(),
+                DEFAULT_AXES_RANGE,
+                DEFAULT_DEVICE_COLORING,
+                DEFAULT_CAMERA_ANGLE,
+            )
+        });
 
     let mut model_player = ModelPlayer::new(
         general_config.model_player_config().output_directory(),
@@ -165,19 +171,25 @@ pub fn movement(general_config: &GeneralConfig) {
         .set_delay_multiplier(general_config.model_config().delay_multiplier())
         .build();
 
-    let output_filename = derive_filename(
-        general_config.model_config().trx_system_type(),
-        general_config.model_config().topology(), 
-        "movement"
-    );
-    let renderer       = PlottersRenderer::new(
-        &output_filename,
-        general_config.render_config().plot_caption(),
-        general_config.render_config().plot_resolution(),
-        DEFAULT_AXES_RANGE,
-        DEFAULT_DEVICE_COLORING,
-        DEFAULT_CAMERA_ANGLE
-    );
+    let renderer = general_config
+        .model_player_config()
+        .render_config()
+        .map(|render_config| { 
+            let output_filename = derive_filename(
+                general_config.model_config().trx_system_type(),
+                general_config.model_config().topology(), 
+                "movement"
+            );
+                    
+            PlottersRenderer::new(
+                &output_filename,
+                render_config.plot_caption(),
+                render_config.plot_resolution(),
+                DEFAULT_AXES_RANGE,
+                DEFAULT_DEVICE_COLORING,
+                DEFAULT_CAMERA_ANGLE,
+            )
+        });
 
     let mut model_player = ModelPlayer::new(
         general_config.model_player_config().output_directory(),
@@ -244,21 +256,31 @@ pub fn gps_spoofing(general_config: &GeneralConfig) {
         .set_delay_multiplier(general_config.model_config().delay_multiplier())
         .build();
 
-    let output_filename = derive_filename(
-        general_config.model_config().trx_system_type(),
-        general_config.model_config().topology(), 
-        "gps_spoofing"
-    );
-    let axes_ranges    = Axes3DRanges::new(0.0..200.0, 0.0..0.0, 0.0..200.0);
-    let camera_angle   = CameraAngle::new(1.57, 1.57);
-    let renderer       = PlottersRenderer::new(
-        &output_filename,
-        general_config.render_config().plot_caption(),
-        general_config.render_config().plot_resolution(),
-        axes_ranges,
-        DEFAULT_DEVICE_COLORING,
-        camera_angle,
-    );
+    let renderer = general_config
+        .model_player_config()
+        .render_config()
+        .map(|render_config| { 
+            let output_filename = derive_filename(
+                general_config.model_config().trx_system_type(),
+                general_config.model_config().topology(), 
+                "gps_spoofing"
+            );
+            let axes_ranges = Axes3DRanges::new(
+                0.0..200.0, 
+                0.0..0.0, 
+                0.0..200.0
+            );
+            let camera_angle = CameraAngle::new(1.57, 1.57);
+
+            PlottersRenderer::new(
+                &output_filename,
+                render_config.plot_caption(),
+                render_config.plot_resolution(),
+                axes_ranges,
+                DEFAULT_DEVICE_COLORING,
+                camera_angle,
+            )
+        });
 
     let mut model_player = ModelPlayer::new(
         general_config.model_player_config().output_directory(),
@@ -326,7 +348,7 @@ pub fn malware_infection(general_config: &GeneralConfig) {
         .set_topology(general_config.model_config().topology())
         .set_delay_multiplier(general_config.model_config().delay_multiplier());
     
-    if general_config.render_config().display_malware_propagation() {
+    if general_config.display_malware_propagation() {
         malware_propagation(
             attacker,
             drone_network_builder.clone(),
@@ -338,29 +360,39 @@ pub fn malware_infection(general_config: &GeneralConfig) {
         .set_attacker_devices(attacker_devices)
         .build();
 
-    let text = match malware.malware_type() {
-        MalwareType::DoS(_)     => "mal_dos",
-        MalwareType::Indicator  => "mal_indicator",
-    };
-    let output_filename = derive_filename(
-        general_config.model_config().trx_system_type(),
-        general_config.model_config().topology(), 
-        text,
-    );
-    let drone_coloring = match malware.malware_type() {
-        MalwareType::DoS(_)    => DeviceColoring::SingleColor(0, 0, 0),
-        MalwareType::Indicator => DeviceColoring::Infection,
-    };
-    let axes_ranges    = Axes3DRanges::new(0.0..100.0, 0.0..0.0, 0.0..100.0);
-    let camera_angle   = CameraAngle::new(1.57, 1.57);
-    let renderer       = PlottersRenderer::new(
-        &output_filename,
-        general_config.render_config().plot_caption(),
-        general_config.render_config().plot_resolution(),
-        axes_ranges,
-        drone_coloring,
-        camera_angle
-    );
+    let renderer = general_config
+        .model_player_config()
+        .render_config()
+        .map(|render_config| { 
+            let text = match malware.malware_type() {
+                MalwareType::DoS(_)     => "mal_dos",
+                MalwareType::Indicator  => "mal_indicator",
+            };
+            let output_filename = derive_filename(
+                general_config.model_config().trx_system_type(),
+                general_config.model_config().topology(), 
+                text,
+            );
+            let drone_coloring = match malware.malware_type() {
+                MalwareType::DoS(_)    => DeviceColoring::SingleColor(0, 0, 0),
+                MalwareType::Indicator => DeviceColoring::Infection,
+            };
+            let axes_ranges = Axes3DRanges::new(
+                0.0..100.0, 
+                0.0..0.0, 
+                0.0..100.0
+            );
+            let camera_angle = CameraAngle::new(1.57, 1.57);
+                    
+            PlottersRenderer::new(
+                &output_filename,
+                render_config.plot_caption(),
+                render_config.plot_resolution(),
+                axes_ranges,
+                drone_coloring,
+                camera_angle
+            )
+        });
 
     let mut model_player = ModelPlayer::new(
         general_config.model_player_config().output_directory(),
@@ -389,22 +421,32 @@ pub fn malware_propagation(
         .set_attacker_devices(attacker_devices)
         .build();
 
-    let output_filename = derive_filename(
-        general_config.model_config().trx_system_type(),
-        general_config.model_config().topology(), 
-        "mal_indicator",
-    );
-    let drone_coloring = DeviceColoring::Infection; 
-    let axes_ranges    = Axes3DRanges::new(0.0..100.0, 0.0..0.0, 0.0..100.0);
-    let camera_angle   = CameraAngle::new(1.57, 1.57);
-    let renderer       = PlottersRenderer::new(
-        &output_filename,
-        general_config.render_config().plot_caption(),
-        general_config.render_config().plot_resolution(),
-        axes_ranges,
-        drone_coloring,
-        camera_angle
-    );
+    let renderer = general_config
+        .model_player_config()
+        .render_config()
+        .map(|render_config| { 
+            let output_filename = derive_filename(
+                general_config.model_config().trx_system_type(),
+                general_config.model_config().topology(), 
+                "mal_indicator",
+            );
+            let drone_coloring = DeviceColoring::Infection; 
+            let axes_ranges = Axes3DRanges::new(
+                0.0..100.0, 
+                0.0..0.0,
+                0.0..100.0
+            );
+            let camera_angle = CameraAngle::new(1.57, 1.57);
+
+            PlottersRenderer::new(
+                &output_filename,
+                render_config.plot_caption(),
+                render_config.plot_resolution(),
+                axes_ranges,
+                drone_coloring,
+                camera_angle,
+            )
+        });
 
     let mut model_player = ModelPlayer::new(
         general_config.model_player_config().output_directory(),
@@ -503,20 +545,30 @@ pub fn signal_loss_response(general_config: &GeneralConfig) {
         .set_delay_multiplier(general_config.model_config().delay_multiplier())
         .build();
  
-    let output_filename = derive_filename(
-        general_config.model_config().trx_system_type(),
-        general_config.model_config().topology(),
-        "signal_loss_response"
-    ); 
-    let axes_ranges     = Axes3DRanges::new(0.0..100.0, 0.0..100.0, 0.0..100.0);
-    let renderer        = PlottersRenderer::new(
-        &output_filename,
-        general_config.render_config().plot_caption(),
-        general_config.render_config().plot_resolution(),
-        axes_ranges,
-        DEFAULT_DEVICE_COLORING,
-        DEFAULT_CAMERA_ANGLE,
-    );
+    let renderer = general_config
+        .model_player_config()
+        .render_config()
+        .map(|render_config| { 
+            let output_filename = derive_filename(
+                general_config.model_config().trx_system_type(),
+                general_config.model_config().topology(),
+                "signal_loss_response"
+            ); 
+            let axes_ranges = Axes3DRanges::new(
+                0.0..100.0, 
+                0.0..100.0, 
+                0.0..100.0
+            );
+
+            PlottersRenderer::new(
+                &output_filename,
+                render_config.plot_caption(),
+                render_config.plot_resolution(),
+                axes_ranges,
+                DEFAULT_DEVICE_COLORING,
+                DEFAULT_CAMERA_ANGLE,
+            )
+        });
     
     let mut model_player = ModelPlayer::new(
         general_config.model_player_config().output_directory(),
