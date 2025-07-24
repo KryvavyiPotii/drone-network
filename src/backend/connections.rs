@@ -496,7 +496,7 @@ mod tests {
     };
     use crate::backend::mathphysics::{Megahertz, Point3D, PowerUnit};
     use crate::backend::signal::{
-        FreqToLevelMap, GREEN_SIGNAL_LEVEL, SignalLevel, SignalArea, 
+        FreqToLevelMap, GREEN_SIGNAL_LEVEL, SignalLevel
     };
     
     use super::*;
@@ -519,8 +519,8 @@ mod tests {
     }
     
     fn control_tx_module(radius: Meter) -> TXModule {
-        let tx_signal_level  = SignalLevel::from_area(
-            SignalArea::build(radius).unwrap(), 
+        let tx_signal_level  = SignalLevel::from_area_radius(
+            radius,
             Frequency::Control as Megahertz
         );
         let tx_signal_levels = FreqToLevelMap::from([

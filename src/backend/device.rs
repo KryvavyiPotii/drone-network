@@ -11,7 +11,7 @@ use super::mathphysics::{
     Millisecond, Point3D, Position, PowerUnit
 };
 use super::signal::{
-    Data, FreqToLevelMap, Signal, SignalArea, SignalLevel, BLACK_SIGNAL_LEVEL, 
+    Data, FreqToLevelMap, Signal, SignalLevel, BLACK_SIGNAL_LEVEL, 
 };
 use super::task::{Task, TaskType};
 
@@ -246,8 +246,8 @@ impl Device {
     }
     
     #[must_use]
-    pub fn area_on(&self, frequency: Frequency) -> SignalArea {
-        self.trx_system.area_on(frequency)
+    pub fn area_radius_on(&self, frequency: Frequency) -> Meter {
+        self.trx_system.area_radius_on(frequency)
     }
 
     #[must_use]
@@ -636,8 +636,8 @@ mod tests {
     }
 
     fn control_tx_module(radius: Meter) -> TXModule {
-        let tx_signal_level  = SignalLevel::from_area(
-            SignalArea::build(radius).unwrap(), 
+        let tx_signal_level  = SignalLevel::from_area_radius(
+            radius, 
             Frequency::Control as Megahertz
         );
         let tx_signal_levels = FreqToLevelMap::from([

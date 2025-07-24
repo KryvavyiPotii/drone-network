@@ -123,8 +123,7 @@ pub fn attacker_device_primitive(
     );
     let radius = attacker_device
         .device()
-        .area_on(frequency)
-        .radius();
+        .area_radius_on(frequency);
     let attacker_device_coverage = meters_to_pixels(radius, plot_resolution);
     let area_color = attacker_device_area_color(attacker_device, frequency);
 

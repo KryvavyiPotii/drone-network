@@ -36,7 +36,7 @@ impl TXModule {
     ) -> Option<SignalLevel> {
         let signal_level = self
             .signal_level_on(&frequency)
-            .at_by_zone(frequency as Megahertz, distance);
+            .at_by_color(frequency as Megahertz, distance);
         
         if signal_level.is_black() {
             return None;

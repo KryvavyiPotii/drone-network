@@ -14,9 +14,7 @@ use crate::backend::mathphysics::{
     Frequency, Megahertz, Meter, Point3D, PowerUnit
 };
 use crate::backend::networkmodel::gps::GPS;
-use crate::backend::signal::{
-    FreqToLevelMap, SignalArea, SignalLevel, GREEN_SIGNAL_LEVEL 
-};
+use crate::backend::signal::{FreqToLevelMap, SignalLevel, GREEN_SIGNAL_LEVEL};
 use crate::backend::task::{Scenario, Task, TaskType};
 use crate::frontend::{MALWARE_INFECTION_DELAY, MALWARE_SPREAD_DELAY};
 
@@ -147,12 +145,12 @@ pub fn default_gps(trx_system_type: TRXSystemType) -> GPS {
 }
 
 pub fn tx_module(frequency: Frequency, tx_area_radius: Meter) -> TXModule {
-    let tx_control_area = SignalArea::build(tx_area_radius).unwrap();
+    let tx_signal_level = SignalLevel::from_area_radius(
+        tx_area_radius, 
+        Frequency::Control as Megahertz
+    );
 
-    let tx_signal_levels = FreqToLevelMap::from([(
-        frequency,
-        SignalLevel::from_area(tx_control_area, Frequency::Control as Megahertz)
-    )]);
+    let tx_signal_levels = FreqToLevelMap::from([(frequency, tx_signal_level)]);
 
     TXModule::new(tx_signal_levels)
 }

@@ -8,13 +8,11 @@ use super::mathphysics::{Frequency, Point3D};
 use super::task::Task;
 
 
-pub use area::*;
 pub use level::*;
 pub use strength::*;
 pub use queue::*;
 
 
-pub mod area;
 pub mod level;
 pub mod strength;
 pub mod queue;

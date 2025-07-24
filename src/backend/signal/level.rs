@@ -12,8 +12,7 @@ use crate::backend::mathphysics::{wave_length_in_meters, Megahertz, Meter};
 
 use super::{
     GREEN_SIGNAL_STRENGTH, MAX_BLACK_SIGNAL_STRENGTH, MAX_RED_SIGNAL_STRENGTH, 
-    MAX_YELLOW_SIGNAL_STRENGTH, SignalArea, SignalStrength, 
-    SIGNAL_STRENGTH_SCALING, 
+    MAX_YELLOW_SIGNAL_STRENGTH, SignalStrength, SIGNAL_STRENGTH_SCALING, 
 };
 
 use inner::SignalLevelInner;
@@ -57,9 +56,8 @@ pub fn min_signal_level(
 pub struct SignalLevel(SignalLevelInner);
 
 impl SignalLevel {
-    // Inverse operation to SignalArea::from_level()
     #[must_use]
-    pub fn from_area(signal_area: SignalArea, frequency: Megahertz) -> Self {
+    pub fn from_area_radius(area_radius: Meter, frequency: Megahertz) -> Self {
         let wave_length = wave_length_in_meters(frequency);
 
         // TX signal strength is such signal strength that grants at least
@@ -71,7 +69,7 @@ impl SignalLevel {
         // We do not use multiplication by MAX_BLACK_SIGNAL_STRENGTH because it 
         // is equal to 1.0.
         let tx_signal_strength = (
-            signal_area.radius() / wave_length
+            area_radius / wave_length
         ).powi(2) / SIGNAL_STRENGTH_SCALING;
 
         Self(SignalLevelInner::from(tx_signal_strength))
@@ -100,8 +98,8 @@ impl SignalLevel {
     }
 
     #[must_use]
-    pub fn at_by_zone(&self, frequency: Megahertz, distance: Meter) -> Self {
-        let radius = SignalArea::from_level(*self, frequency).radius();
+    pub fn at_by_color(&self, frequency: Megahertz, distance: Meter) -> Self {
+        let radius = self.area_radius_on(frequency); 
 
         if distance <= radius * GREEN_SIGNAL_ZONE_COEFFICIENT {
             *self
@@ -111,6 +109,29 @@ impl SignalLevel {
             self.lower_level().lower_level()
         } else {
             BLACK_SIGNAL_LEVEL
+        }
+    }
+    
+    // Inverse operation to `SignalLevel::from_area_radius`
+    #[must_use]
+    pub fn area_radius_on(&self, frequency: Megahertz) -> Meter {
+        let tx_signal_strength = self.strength();
+        let wave_length = wave_length_in_meters(frequency);
+
+        if tx_signal_strength <= MAX_BLACK_SIGNAL_STRENGTH {
+            0.0
+        } else {
+            // The area radius is a minimal distance from the tx at which 
+            // the signal level is black.
+            // So, the actual formula is:
+            //     radius = wave_length * (
+            //         tx_signal_strength / MAX_BLACK_SIGNAL_STRENGTH
+            //     ).sqrt()
+            // We do not use division by MAX_BLACK_SIGNAL_STRENGTH because it 
+            // is equal to 1.0.
+            wave_length * (
+                tx_signal_strength.value() * SIGNAL_STRENGTH_SCALING
+            ).sqrt() 
         }
     }
 
@@ -229,24 +250,21 @@ mod tests {
     fn rx_signal_levels_in_different_zones_by_color(
         tx_signal_level: &SignalLevel
     ) -> (SignalLevel, SignalLevel, SignalLevel, SignalLevel) {
-        let radius = SignalArea::from_level(
-            tx_signal_level.clone(),
-            SOME_FREQUENCY
-        ).radius();
+        let radius = tx_signal_level.area_radius_on(SOME_FREQUENCY);
         
-        let green_zone_rx_signal_level = tx_signal_level.at_by_zone(
+        let green_zone_rx_signal_level = tx_signal_level.at_by_color(
             SOME_FREQUENCY,
             radius * GREEN_SIGNAL_ZONE_COEFFICIENT
         );
-        let yellow_zone_rx_signal_level = tx_signal_level.at_by_zone(
+        let yellow_zone_rx_signal_level = tx_signal_level.at_by_color(
             SOME_FREQUENCY,
             radius * YELLOW_SIGNAL_ZONE_COEFFICIENT
         );
-        let red_zone_rx_signal_level = tx_signal_level.at_by_zone(
+        let red_zone_rx_signal_level = tx_signal_level.at_by_color(
             SOME_FREQUENCY,
             (radius + 1.0) * YELLOW_SIGNAL_ZONE_COEFFICIENT 
         );
-        let black_zone_rx_signal_level = tx_signal_level.at_by_zone(
+        let black_zone_rx_signal_level = tx_signal_level.at_by_color(
             SOME_FREQUENCY,
             radius + 1.0
         );
@@ -293,10 +311,7 @@ mod tests {
     fn rx_signal_level_is_lower_than_tx_by_strength(
         tx_signal_level: &SignalLevel
     ) {
-        let radius = SignalArea::from_level(
-            tx_signal_level.clone(),
-            SOME_FREQUENCY
-        ).radius();
+        let radius = tx_signal_level.area_radius_on(SOME_FREQUENCY);
         
         let rx_signal_level_at_half = tx_signal_level.at(
             SOME_FREQUENCY,

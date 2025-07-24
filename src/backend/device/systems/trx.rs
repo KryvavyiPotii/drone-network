@@ -2,9 +2,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::backend::mathphysics::{Frequency, Megahertz, Meter, Millisecond};
-use crate::backend::signal::{
-    FreqToLevelMap, Signal, SignalArea, SignalLevel
-};
+use crate::backend::signal::{FreqToLevelMap, Signal, SignalLevel};
 
 pub use rx::{ReceivedSignal, RXError, RXModule};
 pub use tx::TXModule;
@@ -67,11 +65,10 @@ impl TRXSystem {
     }
 
     #[must_use]
-    pub fn area_on(&self, frequency: Frequency) -> SignalArea {
-        SignalArea::from_level(
-            *self.tx_module.signal_level_on(&frequency),
-            frequency as Megahertz
-        )
+    pub fn area_radius_on(&self, frequency: Frequency) -> Meter {
+        self.tx_module
+            .signal_level_on(&frequency)
+            .area_radius_on(frequency as Megahertz)
     }
 
     #[must_use]

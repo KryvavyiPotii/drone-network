@@ -112,7 +112,7 @@ impl RXModule {
             return Err(RXError::SignalNotReceived);
         }
 
-        self.remove_current_received_signal_on(&signal.frequency());
+        self.remove_current_received_signal_on(signal.frequency());
 
         // Signals which level is higher than RX module's max, are viewed as 
         // noise.
@@ -143,11 +143,11 @@ impl RXModule {
         Ok(max_signal_level)
     }
 
-    fn remove_current_received_signal_on(&mut self, frequency: &Frequency) {
+    fn remove_current_received_signal_on(&mut self, frequency: Frequency) {
         let Some(current_signal_index) = self.received_signals
             .iter()
             .position(|(_, current_signal)| 
-                current_signal.frequency() == *frequency
+                current_signal.frequency() == frequency
             )
         else {
             return;
