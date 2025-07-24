@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::fmt;
 
 use rustworkx_core::distancemap::DistanceMap;

@@ -41,11 +41,10 @@ pub fn add_malware_signals_to_queue(
             continue;
         };
 
-        let malware_data = Data::Malware(*malware);
         let malware_signal = Signal::new(
             source_device.id(),
             destination_device.id(),
-            Some(malware_data), 
+            Data::Malware(*malware), 
             Frequency::Control, 
             signal_level
         );
@@ -152,7 +151,7 @@ impl AttackerDevice {
         for frequency in self.device.tx_signal_levels().keys() {
             let Ok(jamming_signal) = self.device.create_signal_for(
                 target_device, 
-                None, 
+                Data::Noise, 
                 *frequency
             ) else {
                 continue;
@@ -185,7 +184,7 @@ impl AttackerDevice {
 
         let Ok(spoofing_signal) = self.device.create_signal_for(
             target_device, 
-            Some(Data::GPS(spoofed_position)), 
+            Data::GPS(spoofed_position), 
             Frequency::GPS,
         ) else {
             return Err(AttackError::TargetOutOfRange);
@@ -218,7 +217,7 @@ impl AttackerDevice {
         
         let Ok(malware_signal) = self.device.create_signal_for(
             target_device, 
-            Some(Data::Malware(malware)), 
+            Data::Malware(malware), 
             Frequency::Control
         ) else {
             return Err(AttackError::TargetOutOfRange);

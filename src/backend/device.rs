@@ -303,7 +303,7 @@ impl Device {
     pub fn create_signal_for(
         &self,
         receiver: &Self,
-        data: Option<Data>,
+        data: Data,
         frequency: Frequency,
     ) -> Result<Signal, TRXSystemError> {
         let Some(signal_level) = self.tx_signal_level_at(
@@ -383,23 +383,25 @@ impl Device {
     
     fn process_received_signals(&mut self,) -> Result<(), DeviceError> {
         for (_, signal) in self.trx_system.received_signals() {
-            if let Some(data) = signal.data() {
-                self.try_consume_power(PROCESSING_POWER_CONSUMPTION)?;
-                self.process_data(data); 
-            }
+            self.process_data(signal.data())?; 
         }
 
         Ok(())
     }
      
-    fn process_data(&mut self, data: &Data) {
+    fn process_data(&mut self, data: &Data) -> Result<(), DeviceError> {
+        self.try_consume_power(PROCESSING_POWER_CONSUMPTION)?;
+
         match data {
             Data::GPS(gps_position) => self.movement_system.set_position(
                 *gps_position
             ),
             Data::Malware(malware)  => self.process_malware(malware),
             Data::SetTask(task)     => self.task = *task,
+            Data::Noise             => ()
         }
+
+        Ok(())
     }
 
     fn process_malware(&mut self, malware: &Malware) {
@@ -773,11 +775,10 @@ mod tests {
 
         let many_iterations = ITERATION_TIME * 10;
         for time in (0..many_iterations).step_by(ITERATION_TIME as usize) {
-            let gps_data = Data::GPS(*device_without_signal.position());
             let gps_signal = Signal::new(
                 SOME_DEVICE_ID,
                 device_without_signal.id(),
-                Some(gps_data), 
+                Data::GPS(*device_without_signal.position()), 
                 Frequency::GPS,
                 RED_SIGNAL_LEVEL,
             );
@@ -817,11 +818,10 @@ mod tests {
 
         let many_iterations = ITERATION_TIME * 500;
         for time in (0..many_iterations).step_by(ITERATION_TIME as usize) {
-            let gps_data = Data::GPS(*device_without_signal.position());
             let gps_signal = Signal::new(
                 SOME_DEVICE_ID,
                 device_without_signal.id(),
-                Some(gps_data), 
+                Data::GPS(*device_without_signal.position()), 
                 Frequency::GPS,
                 RED_SIGNAL_LEVEL,
             );
@@ -872,11 +872,10 @@ mod tests {
 
         let many_iterations = ITERATION_TIME * 500;
         for time in (0..many_iterations).step_by(ITERATION_TIME as usize) {
-            let gps_data = Data::GPS(*device_without_signal.position());
             let gps_signal = Signal::new(
                 SOME_DEVICE_ID,
                 device_without_signal.id(),
-                Some(gps_data), 
+                Data::GPS(*device_without_signal.position()), 
                 Frequency::GPS,
                 RED_SIGNAL_LEVEL,
             );
@@ -909,11 +908,10 @@ mod tests {
 
         let many_iterations = 500;
         for time in (0..many_iterations).step_by(ITERATION_TIME as usize) {
-            let gps_data = Data::GPS(*device_without_signal.position());
             let gps_signal = Signal::new(
                 SOME_DEVICE_ID,
                 device_without_signal.id(),
-                Some(gps_data), 
+                Data::GPS(*device_without_signal.position()), 
                 Frequency::GPS,
                 RED_SIGNAL_LEVEL,
             );
@@ -1009,11 +1007,10 @@ mod tests {
             
         let many_iterations = 1000;
         for time in (0..many_iterations).step_by(ITERATION_TIME as usize) {
-            let gps_data = Data::GPS(*device.position());
             let gps_signal = Signal::new(
                 SOME_DEVICE_ID,
                 device.id(),
-                Some(gps_data), 
+                Data::GPS(*device.position()), 
                 Frequency::GPS,
                 RED_SIGNAL_LEVEL,
             );
@@ -1067,7 +1064,7 @@ mod tests {
         let signal = Signal::new(
             SOME_DEVICE_ID,
             device.id(),
-            Some(Data::SetTask(task)),
+            Data::SetTask(task),
             Frequency::Control, 
             RED_SIGNAL_LEVEL, 
         );
@@ -1095,7 +1092,7 @@ mod tests {
         let gps_signal = Signal::new(
             SOME_DEVICE_ID,
             device.id(),
-            Some(Data::GPS(gps_position)), 
+            Data::GPS(gps_position), 
             Frequency::GPS,
             RED_SIGNAL_LEVEL,
         );
@@ -1122,7 +1119,7 @@ mod tests {
         let signal = Signal::new(
             SOME_DEVICE_ID,
             BROADCAST_ID,
-            Some(Data::SetTask(task)), 
+            Data::SetTask(task), 
             Frequency::Control, 
             RED_SIGNAL_LEVEL, 
         );
@@ -1145,7 +1142,7 @@ mod tests {
         let signal = Signal::new(
             SOME_DEVICE_ID,
             device.id() + 1,
-            Some(Data::SetTask(undefined_task)), 
+            Data::SetTask(undefined_task), 
             Frequency::Control, 
             RED_SIGNAL_LEVEL, 
         );
@@ -1170,7 +1167,7 @@ mod tests {
         let signal = Signal::new(
             SOME_DEVICE_ID,
             BROADCAST_ID,
-            Some(Data::Malware(malware)), 
+            Data::Malware(malware), 
             Frequency::Control, 
             RED_SIGNAL_LEVEL, 
         );
@@ -1196,7 +1193,7 @@ mod tests {
         let signal = Signal::new(
             SOME_DEVICE_ID,
             BROADCAST_ID,
-            Some(Data::Malware(malware)), 
+            Data::Malware(malware), 
             Frequency::Control,
             RED_SIGNAL_LEVEL, 
         );

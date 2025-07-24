@@ -34,7 +34,7 @@ impl GPS {
         for device in device_map.devices() {
             let Ok(gps_signal) = self.0.create_signal_for(
                 device,
-                Some(Data::GPS(*device.position())), 
+                Data::GPS(*device.position()), 
                 Frequency::GPS
             ) else {
                 continue;

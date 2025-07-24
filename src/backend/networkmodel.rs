@@ -298,7 +298,7 @@ impl NetworkModel {
 
             let Ok(task_signal) = command_device.create_signal_for(
                 device, 
-                Some(Data::SetTask(*last_task)), 
+                Data::SetTask(*last_task), 
                 Frequency::Control,
             ) else {
                 continue;

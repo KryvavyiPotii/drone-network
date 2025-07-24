@@ -30,6 +30,7 @@ pub enum Data {
     GPS(Point3D),
     Malware(Malware),
     SetTask(Task),
+    Noise,
 }
 
 
@@ -39,7 +40,7 @@ pub enum Data {
 pub struct Signal {
     source_id: DeviceId,
     destination_id: DeviceId,
-    data: Option<Data>,
+    data: Data,
     frequency: Frequency,
     level: SignalLevel,
 }
@@ -49,7 +50,7 @@ impl Signal {
     pub fn new(
         source_id: DeviceId,
         destination_id: DeviceId,
-        data: Option<Data>,
+        data: Data,
         frequency: Frequency,
         level: SignalLevel,
     ) -> Self {
@@ -64,7 +65,7 @@ impl Signal {
 
     #[must_use]
     pub fn to_noise(&self) -> Self {
-        Self { data: None, ..*self }
+        Self { data: Data::Noise, ..*self }
     }
     
     #[must_use]
@@ -78,8 +79,8 @@ impl Signal {
     }
 
     #[must_use]
-    pub fn data(&self) -> Option<&Data> {
-        self.data.as_ref()
+    pub fn data(&self) -> &Data {
+        &self.data
     }
 
     #[must_use]
@@ -94,7 +95,7 @@ impl Signal {
     
     #[must_use]
     pub fn malware(&self) -> Option<&Malware> {
-        if let Some(Data::Malware(malware)) = &self.data {
+        if let Data::Malware(malware) = &self.data {
             return Some(malware);
         }
 
@@ -103,7 +104,7 @@ impl Signal {
     
     #[must_use]
     pub fn task(&self) -> Option<&Task> {
-        if let Some(Data::SetTask(task)) = &self.data {
+        if let Data::SetTask(task) = &self.data {
             return Some(task);
         }
 
@@ -112,6 +113,6 @@ impl Signal {
 
     #[must_use]
     pub fn is_malware(&self) -> bool {
-        matches!(self.data, Some(Data::Malware(_)))
+        matches!(self.data, Data::Malware(_))
     }
 }

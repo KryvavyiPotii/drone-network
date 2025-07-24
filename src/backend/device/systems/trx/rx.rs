@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::backend::mathphysics::{Frequency, Millisecond};
-use crate::backend::signal::{FreqToLevelMap, Signal, SignalLevel};
+use crate::backend::signal::{Data, FreqToLevelMap, Signal, SignalLevel};
 
 
 // The first element - time at which a signal was received.
@@ -69,7 +69,8 @@ impl RXModule {
         self.received_signals
             .iter()
             .any(|(_, signal)| 
-                signal.frequency() == *frequency && signal.data().is_some() 
+                signal.frequency() == *frequency 
+                    && !matches!(signal.data(), Data::Noise)
             )
     }
 
