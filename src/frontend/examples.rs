@@ -16,6 +16,9 @@ mod custom;
 mod premade;
 
 
+type ExampleFn = fn(&GeneralConfig);
+
+
 #[derive(Clone)]
 pub enum Example {
     Custom(PathBuf),
@@ -41,7 +44,7 @@ impl Example {
         example_function(general_config);
     }
 
-    fn premade_example_function(&self) -> fn(&GeneralConfig) {
+    fn premade_example_function(&self) -> ExampleFn {
         match self {
             Self::Custom(_)          => panic!("Custom function not allowed"),
             Self::GPSEWD             => gps_only,
