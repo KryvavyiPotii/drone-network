@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-use crate::backend::mathphysics::{Megahertz, Meter};
+use crate::backend::mathphysics::{Frequency, Megahertz, Meter};
 use crate::backend::signal::{BLACK_SIGNAL_LEVEL, FreqToLevelMap, SignalLevel};
 
 
@@ -22,7 +22,7 @@ impl TXModule {
     }
 
     #[must_use]
-    pub fn signal_level_on(&self, frequency: &Megahertz) -> &SignalLevel {
+    pub fn signal_level_on(&self, frequency: &Frequency) -> &SignalLevel {
         self.signal_levels
             .get(frequency)
             .unwrap_or(&BLACK_SIGNAL_LEVEL)
@@ -32,11 +32,11 @@ impl TXModule {
     pub fn signal_level_at_by_color(
         &self,
         distance: Meter,
-        frequency: Megahertz,
+        frequency: Frequency,
     ) -> Option<SignalLevel> {
         let signal_level = self
             .signal_level_on(&frequency)
-            .at_by_zone(frequency, distance);
+            .at_by_zone(frequency as Megahertz, distance);
         
         if signal_level.is_black() {
             return None;
@@ -49,11 +49,11 @@ impl TXModule {
     pub fn signal_level_at_by_strength(
         &self,
         distance: Meter,
-        frequency: Megahertz,
+        frequency: Frequency,
     ) -> Option<SignalLevel> {
         let signal_level = self
             .signal_level_on(&frequency)
-            .at(frequency, distance);
+            .at(frequency as Megahertz, distance);
         
         if signal_level.is_black() {
             return None;

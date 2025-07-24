@@ -29,12 +29,6 @@ impl Point3D {
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
     }
-
-    pub fn set_coordinates(&mut self, coordinates: (f32, f32, f32)) {
-        self.x = coordinates.0;
-        self.y = coordinates.1;
-        self.z = coordinates.2;
-    }
 }
 
 impl_op_ex!(

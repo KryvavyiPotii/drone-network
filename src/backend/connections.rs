@@ -17,7 +17,7 @@ use rustworkx_core::shortest_path::{astar, dijkstra};
 use super::device::{
     Device, DeviceId, IdToDelayMap, IdToDeviceMap, BROADCAST_ID
 };
-use super::mathphysics::{delay_to, Megahertz, Meter, Position};
+use super::mathphysics::{delay_to, Frequency, Meter, Position};
 use super::signal::SignalLevel;
 
 
@@ -88,7 +88,7 @@ impl ConnectionGraph {
         &mut self, 
         command_device_id: DeviceId,
         device_map: &IdToDeviceMap,
-        frequency: Megahertz
+        frequency: Frequency
     ) {
         self.graph_map.clear();
         
@@ -108,7 +108,7 @@ impl ConnectionGraph {
         &mut self,
         central_device: &Device,
         device_map: &IdToDeviceMap,
-        frequency: Megahertz
+        frequency: Frequency
     ) {
         for device in device_map.devices() {
             self.connect_devices(central_device, device, frequency);    
@@ -118,7 +118,7 @@ impl ConnectionGraph {
     fn create_mesh(
         &mut self, 
         device_map: &IdToDeviceMap,
-        frequency: Megahertz
+        frequency: Frequency
     ) {
         for tx in device_map.devices() {
             for rx in device_map.devices() {
@@ -131,7 +131,7 @@ impl ConnectionGraph {
         &mut self,
         device1: &Device,
         device2: &Device,
-        frequency: Megahertz,
+        frequency: Frequency,
     ) {
         // Loops are prohibited. Otherwise, shortest path algorithms will 
         // not function properly.
@@ -490,15 +490,13 @@ impl<'de> Deserialize<'de> for ConnectionGraph {
 
 #[cfg(test)]
 mod tests {
-    use crate::backend::CONTROL_FREQUENCY;
     use crate::backend::device::{Device, DeviceBuilder};
     use crate::backend::device::systems::{
         PowerSystem, RXModule, TRXSystem, TRXSystemType, TXModule
     };
-    use crate::backend::mathphysics::{Point3D, PowerUnit};
+    use crate::backend::mathphysics::{Megahertz, Point3D, PowerUnit};
     use crate::backend::signal::{
         FreqToLevelMap, GREEN_SIGNAL_LEVEL, SignalLevel, SignalArea, 
-        GPS_L1_FREQUENCY
     };
     
     use super::*;
@@ -523,10 +521,10 @@ mod tests {
     fn control_tx_module(radius: Meter) -> TXModule {
         let tx_signal_level  = SignalLevel::from_area(
             SignalArea::build(radius).unwrap(), 
-            CONTROL_FREQUENCY
+            Frequency::Control as Megahertz
         );
         let tx_signal_levels = FreqToLevelMap::from([
-            (CONTROL_FREQUENCY, tx_signal_level)
+            (Frequency::Control, tx_signal_level)
         ]);
 
         TXModule::new(tx_signal_levels)
@@ -534,8 +532,7 @@ mod tests {
     
     fn rx_module() -> RXModule {
         let max_rx_signal_levels = FreqToLevelMap::from([
-            (GPS_L1_FREQUENCY, GREEN_SIGNAL_LEVEL),
-            (CONTROL_FREQUENCY, GREEN_SIGNAL_LEVEL)
+            (Frequency::Control, GREEN_SIGNAL_LEVEL)
         ]);
 
         RXModule::new(max_rx_signal_levels)
@@ -556,7 +553,7 @@ mod tests {
     }
 
     fn simple_mesh() -> (ConnectionGraph, Vec<DeviceId>) {
-        let frequency = CONTROL_FREQUENCY;
+        let frequency = Frequency::Control;
         
         // Network:
         //                      D
@@ -606,7 +603,7 @@ mod tests {
     }
 
     fn simple_star() -> (ConnectionGraph, Vec<DeviceId>) {
-        let frequency = CONTROL_FREQUENCY;
+        let frequency = Frequency::Control;
         
         let command_center = DeviceBuilder::new()
             .set_power_system(device_power_system())
@@ -754,7 +751,7 @@ mod tests {
 
     #[test]
     fn network_diameter() {
-        let frequency = CONTROL_FREQUENCY;
+        let frequency = Frequency::Control;
         
         // Network 1: full mesh with edge weight 1.0.
         let command_center = DeviceBuilder::new()

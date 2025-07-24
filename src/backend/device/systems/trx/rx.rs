@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::backend::mathphysics::{Megahertz, Millisecond};
+use crate::backend::mathphysics::{Frequency, Millisecond};
 use crate::backend::signal::{FreqToLevelMap, Signal, SignalLevel};
 
 
@@ -65,7 +65,7 @@ impl RXModule {
     }
 
     #[must_use]
-    pub fn receives_signal_on(&self, frequency: &Megahertz) -> bool {
+    pub fn receives_signal_on(&self, frequency: &Frequency) -> bool {
         self.received_signals
             .iter()
             .any(|(_, signal)| 
@@ -81,7 +81,7 @@ impl RXModule {
     #[must_use]
     pub fn received_signal_on(
         &self, 
-        frequency: &Megahertz, 
+        frequency: &Frequency, 
     ) -> Option<&ReceivedSignal> {
         self.received_signals
             .iter()
@@ -112,7 +112,7 @@ impl RXModule {
             return Err(RXError::SignalNotReceived);
         }
 
-        self.remove_current_received_signal_on(signal.frequency());
+        self.remove_current_received_signal_on(&signal.frequency());
 
         // Signals which level is higher than RX module's max, are viewed as 
         // noise.
@@ -128,7 +128,7 @@ impl RXModule {
 
     fn max_signal_level_on(
         &self, 
-        frequency: Megahertz
+        frequency: Frequency, 
     ) -> Result<&SignalLevel, RXError> {
         let Some(max_signal_level) = self.max_signal_levels.get(
             &frequency
@@ -143,11 +143,11 @@ impl RXModule {
         Ok(max_signal_level)
     }
 
-    fn remove_current_received_signal_on(&mut self, frequency: Megahertz) {
+    fn remove_current_received_signal_on(&mut self, frequency: &Frequency) {
         let Some(current_signal_index) = self.received_signals
             .iter()
             .position(|(_, current_signal)| 
-                current_signal.frequency() == frequency
+                current_signal.frequency() == *frequency
             )
         else {
             return;

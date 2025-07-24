@@ -96,14 +96,13 @@ impl SignalQueue {
 #[cfg(test)]
 mod tests {
     use crate::backend::device::DeviceId;
-    use crate::backend::mathphysics::Megahertz;
+    use crate::backend::mathphysics::Frequency;
     use crate::backend::signal::BLACK_SIGNAL_LEVEL;
 
     use super::*;
 
 
-    const SOME_ID: DeviceId         = 5;
-    const SOME_FREQUENCY: Megahertz = 2_000;
+    const SOME_ID: DeviceId = 5;
 
 
     fn time_and_signals() -> Vec<(Millisecond, Signal)> {
@@ -111,21 +110,21 @@ mod tests {
             SOME_ID,
             SOME_ID,
             None,
-            SOME_FREQUENCY,
+            Frequency::Control,
             BLACK_SIGNAL_LEVEL,
         );
         let signal2 = Signal::new(
             SOME_ID,
             SOME_ID,
             None,
-            SOME_FREQUENCY,
+            Frequency::Control,
             BLACK_SIGNAL_LEVEL,
         );
         let signal3 = Signal::new(
             SOME_ID,
             SOME_ID,
             None,
-            SOME_FREQUENCY,
+            Frequency::Control,
             BLACK_SIGNAL_LEVEL,
         );
 

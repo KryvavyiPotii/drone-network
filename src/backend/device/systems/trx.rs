@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use crate::backend::mathphysics::{Megahertz, Meter, Millisecond};
+use crate::backend::mathphysics::{Frequency, Megahertz, Meter, Millisecond};
 use crate::backend::signal::{
     FreqToLevelMap, Signal, SignalArea, SignalLevel
 };
@@ -62,15 +62,15 @@ impl TRXSystem {
     }
 
     #[must_use]
-    pub fn tx_signal_level_on(&self, frequency: &Megahertz) -> &SignalLevel {
+    pub fn tx_signal_level_on(&self, frequency: &Frequency) -> &SignalLevel {
         self.tx_module.signal_level_on(frequency) 
     }
 
     #[must_use]
-    pub fn area_on(&self, frequency: Megahertz) -> SignalArea {
+    pub fn area_on(&self, frequency: Frequency) -> SignalArea {
         SignalArea::from_level(
             *self.tx_module.signal_level_on(&frequency),
-            frequency
+            frequency as Megahertz
         )
     }
 
@@ -78,7 +78,7 @@ impl TRXSystem {
     pub fn tx_signal_level_at(
         &self, 
         distance: Meter,
-        frequency: Megahertz,
+        frequency: Frequency,
     ) -> Option<SignalLevel> {
         match self.trx_system_type {
             TRXSystemType::Color    => 
@@ -92,13 +92,13 @@ impl TRXSystem {
     pub fn transmits_at(
         &self, 
         distance: Meter, 
-        frequency: Megahertz
+        frequency: Frequency
     ) -> bool {
         self.tx_signal_level_at(distance, frequency).is_some()
     }
    
     #[must_use]
-    pub fn receives_signal_on(&self, frequency: &Megahertz) -> bool {
+    pub fn receives_signal_on(&self, frequency: &Frequency) -> bool {
         self.rx_module.receives_signal_on(frequency)
     }
 
@@ -110,7 +110,7 @@ impl TRXSystem {
     #[must_use]
     pub fn received_signal_on(
         &self, 
-        frequency: &Megahertz
+        frequency: &Frequency
     ) -> Option<&ReceivedSignal> {
         self.rx_module.received_signal_on(frequency)
     }

@@ -21,31 +21,8 @@ pub fn millis_to_secs(millis: Millisecond) -> Second {
 }
 
 #[must_use]
-pub fn secs_to_millis(secs: Second) -> Millisecond {
-    (secs * 1_000.0).round() as Millisecond
-}
-
-#[must_use]
-pub fn mps_to_mpms(mps: MeterPerSecond) -> MeterPerMillisecond {
-    mps as MeterPerMillisecond / 1_000.0 
-}
-
-#[must_use]
 pub fn kmps_to_mpms(kmps: KilometerPerSecond) -> MeterPerMillisecond {
     kmps as MeterPerMillisecond
-}
-
-#[must_use]
-pub fn mpms_to_mps(mpms: MeterPerMillisecond) -> MeterPerSecond {
-    mpms as MeterPerSecond * 1_000.0
-}
-
-#[must_use]
-pub fn time_in_secs_from_distance_and_speed(
-    distance: Meter, 
-    speed: MeterPerSecond
-) -> Second {
-    distance / speed
 }
 
 #[must_use]

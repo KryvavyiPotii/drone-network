@@ -23,7 +23,7 @@ mod args;
 
 pub fn cli() {
     let matches = Command::new("drone_network")
-        .version("0.1.3")
+        .version("0.1.4")
         .about("Models drone networks.")
         .arg(
             Arg::new(ARG_EXPERIMENT_TITLE)

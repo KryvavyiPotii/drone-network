@@ -3,11 +3,11 @@ use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 
-use super::{CONTROL_FREQUENCY, ITERATION_TIME};
+use super::ITERATION_TIME;
 use super::connections::{ConnectionGraph, Topology};
 use super::device::{Device, DeviceId, IdToDeviceMap};
 use super::malware::Malware;
-use super::mathphysics::Millisecond;
+use super::mathphysics::{Frequency, Millisecond};
 use super::signal::{Data, SignalQueue};
 use super::task::Scenario;
 
@@ -273,7 +273,7 @@ impl NetworkModel {
         self.connections.update(
             self.command_device_id, 
             &self.device_map,
-            CONTROL_FREQUENCY,
+            Frequency::Control,
         );
     }
 
@@ -299,7 +299,7 @@ impl NetworkModel {
             let Ok(task_signal) = command_device.create_signal_for(
                 device, 
                 Some(Data::SetTask(*last_task)), 
-                CONTROL_FREQUENCY
+                Frequency::Control,
             ) else {
                 continue;
             };

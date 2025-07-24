@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::device::DeviceId;
 use super::malware::Malware;
-use super::mathphysics::{Megahertz, Point3D};
+use super::mathphysics::{Frequency, Point3D};
 use super::task::Task;
 
 
@@ -20,14 +20,11 @@ pub mod strength;
 pub mod queue;
 
 
-pub const GPS_L1_FREQUENCY: Megahertz      = 1_575;
-pub const WIFI_2_4GHZ_FREQUENCY: Megahertz = 2_400;
-
 // Const for proper signal strength scaling at distance.
 const SIGNAL_STRENGTH_SCALING: f32 = 2_500.0; 
 
 
-pub type FreqToLevelMap = HashMap<Megahertz, SignalLevel>;
+pub type FreqToLevelMap = HashMap<Frequency, SignalLevel>;
 
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -45,7 +42,7 @@ pub struct Signal {
     source_id: DeviceId,
     destination_id: DeviceId,
     data: Option<Data>,
-    frequency: Megahertz,
+    frequency: Frequency,
     level: SignalLevel,
 }
 
@@ -55,7 +52,7 @@ impl Signal {
         source_id: DeviceId,
         destination_id: DeviceId,
         data: Option<Data>,
-        frequency: Megahertz,
+        frequency: Frequency,
         level: SignalLevel,
     ) -> Self {
         Self { 
@@ -88,7 +85,7 @@ impl Signal {
     }
 
     #[must_use]
-    pub fn frequency(&self) -> Megahertz {
+    pub fn frequency(&self) -> Frequency {
         self.frequency
     }
 

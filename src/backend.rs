@@ -1,5 +1,4 @@
-use mathphysics::{Megahertz, Meter, Millisecond};
-use signal::WIFI_2_4GHZ_FREQUENCY;
+use mathphysics::{Meter, Millisecond};
 
 
 pub mod connections;
@@ -11,6 +10,5 @@ pub mod signal;
 pub mod task;
 
 
-pub const CONTROL_FREQUENCY: Megahertz = WIFI_2_4GHZ_FREQUENCY;
 pub const DESTINATION_RADIUS: Meter    = 5.0;
 pub const ITERATION_TIME: Millisecond  = 50;

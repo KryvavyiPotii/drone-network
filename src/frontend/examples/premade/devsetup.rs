@@ -2,7 +2,6 @@ use std::ops::Range;
 
 use rand::prelude::*;
 
-use crate::backend::CONTROL_FREQUENCY;
 use crate::backend::device::{
     Device, DeviceBuilder, SignalLossResponse, BROADCAST_ID, MAX_DRONE_SPEED 
 };
@@ -11,11 +10,12 @@ use crate::backend::device::systems::{
     TRXSystemType
 };
 use crate::backend::malware::{Malware, MalwareType};
-use crate::backend::mathphysics::{Megahertz, Meter, Point3D, PowerUnit};
+use crate::backend::mathphysics::{
+    Frequency, Megahertz, Meter, Point3D, PowerUnit
+};
 use crate::backend::networkmodel::gps::GPS;
 use crate::backend::signal::{
-    FreqToLevelMap, SignalArea, SignalLevel, GPS_L1_FREQUENCY, 
-    GREEN_SIGNAL_LEVEL 
+    FreqToLevelMap, SignalArea, SignalLevel, GREEN_SIGNAL_LEVEL 
 };
 use crate::backend::task::{Scenario, Task, TaskType};
 use crate::frontend::{MALWARE_INFECTION_DELAY, MALWARE_SPREAD_DELAY};
@@ -95,7 +95,7 @@ pub fn cc_trx_system(
     trx_system_type: TRXSystemType, 
     tx_control_area_radius: Meter
 ) -> TRXSystem {
-    let tx_module = tx_module(CONTROL_FREQUENCY, tx_control_area_radius);
+    let tx_module = tx_module(Frequency::Control, tx_control_area_radius);
     let rx_module = rx_module(GREEN_SIGNAL_LEVEL);
 
     TRXSystem::new( 
@@ -112,14 +112,14 @@ pub fn drone_trx_system(
 ) -> TRXSystem {
     TRXSystem::new(
         trx_system_type,
-        tx_module(CONTROL_FREQUENCY, tx_control_area_radius), 
+        tx_module(Frequency::Control, tx_control_area_radius), 
         rx_module(max_gps_rx_signal_level),
     )
 }
  
 pub fn ewd_trx_system(
     trx_system_type: TRXSystemType,
-    frequency: Megahertz,
+    frequency: Frequency,
     suppression_area_radius: Meter
 ) -> TRXSystem {
     TRXSystem::new( 
@@ -132,7 +132,7 @@ pub fn ewd_trx_system(
 pub fn default_gps(trx_system_type: TRXSystemType) -> GPS {
     let trx_system = TRXSystem::new( 
         trx_system_type,
-        tx_module(GPS_L1_FREQUENCY, GPS_TX_RADIUS),
+        tx_module(Frequency::GPS, GPS_TX_RADIUS),
         RXModule::default()
     );
 
@@ -143,15 +143,15 @@ pub fn default_gps(trx_system_type: TRXSystemType) -> GPS {
         .set_trx_system(trx_system)
         .build();
 
-    GPS::new(device, GPS_L1_FREQUENCY)
+    GPS::new(device)
 }
 
-pub fn tx_module(frequency: Megahertz, tx_area_radius: Meter) -> TXModule {
+pub fn tx_module(frequency: Frequency, tx_area_radius: Meter) -> TXModule {
     let tx_control_area = SignalArea::build(tx_area_radius).unwrap();
 
     let tx_signal_levels = FreqToLevelMap::from([(
         frequency,
-        SignalLevel::from_area(tx_control_area, CONTROL_FREQUENCY)
+        SignalLevel::from_area(tx_control_area, Frequency::Control as Megahertz)
     )]);
 
     TXModule::new(tx_signal_levels)
@@ -159,8 +159,8 @@ pub fn tx_module(frequency: Megahertz, tx_area_radius: Meter) -> TXModule {
 
 pub fn rx_module(max_gps_rx_signal_level: SignalLevel) -> RXModule {
     let max_rx_signal_levels = FreqToLevelMap::from([
-        (CONTROL_FREQUENCY, SignalLevel::from(10_000.0)),
-        (GPS_L1_FREQUENCY, max_gps_rx_signal_level)
+        (Frequency::Control, SignalLevel::from(10_000.0)),
+        (Frequency::GPS, max_gps_rx_signal_level)
     ]);
 
     RXModule::new(max_rx_signal_levels)

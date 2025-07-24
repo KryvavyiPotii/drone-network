@@ -1,10 +1,13 @@
 use super::ITERATION_TIME;
 
+
+pub use frequency::Frequency;
 pub use point::Point3D;
 pub use unit::*;
 pub use vector::Vector3D;
 
 
+pub mod frequency;
 pub mod point;
 pub mod unit;
 pub mod vector;

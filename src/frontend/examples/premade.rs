@@ -1,16 +1,13 @@
-use crate::backend::CONTROL_FREQUENCY;
 use crate::backend::connections::Topology;
 use crate::backend::device::{
     Device, DeviceBuilder, IdToDeviceMap, SignalLossResponse
 };
 use crate::backend::device::systems::TRXSystemType;
 use crate::backend::malware::MalwareType;
-use crate::backend::mathphysics::Point3D;
+use crate::backend::mathphysics::{Frequency, Point3D};
 use crate::backend::networkmodel::NetworkModelBuilder; 
 use crate::backend::networkmodel::attack::{AttackType, AttackerDevice};
-use crate::backend::signal::{
-    SignalLevel, GPS_L1_FREQUENCY, GREEN_SIGNAL_LEVEL, RED_SIGNAL_LEVEL
-};
+use crate::backend::signal::{SignalLevel, GREEN_SIGNAL_LEVEL, RED_SIGNAL_LEVEL};
 use crate::frontend::config::GeneralConfig;
 use crate::frontend::player::ModelPlayer;
 use crate::frontend::renderer::{
@@ -85,7 +82,7 @@ pub fn gps_only(general_config: &GeneralConfig) {
         .set_trx_system(
             ewd_trx_system(
                 general_config.model_config().trx_system_type(), 
-                GPS_L1_FREQUENCY, 
+                Frequency::GPS, 
                 ewd_suppression_area_radius
             )
         )
@@ -236,7 +233,7 @@ pub fn gps_spoofing(general_config: &GeneralConfig) {
         .set_trx_system(
             ewd_trx_system(
                 general_config.model_config().trx_system_type(), 
-                GPS_L1_FREQUENCY, 
+                Frequency::GPS, 
                 gps_spoofing_area_radius
             )
         )
@@ -329,7 +326,7 @@ pub fn malware_infection(general_config: &GeneralConfig) {
         .set_trx_system(
             ewd_trx_system(
                 general_config.model_config().trx_system_type(),
-                CONTROL_FREQUENCY,
+                Frequency::Control,
                 attacker_tx_area_radius
             )
         )
@@ -526,7 +523,7 @@ pub fn signal_loss_response(general_config: &GeneralConfig) {
         .set_trx_system(
             ewd_trx_system(
                 general_config.model_config().trx_system_type(),
-                CONTROL_FREQUENCY,
+                Frequency::Control,
                 control_ewd_suppression_area_radius
             )
         )

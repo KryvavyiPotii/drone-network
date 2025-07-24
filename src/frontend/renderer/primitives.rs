@@ -1,12 +1,11 @@
-use full_palette::{GREY, ORANGE, PINK_300, PINK_200};
+use full_palette::{ORANGE, PINK_300, PINK_200};
 use plotters::prelude::*;
 use plotters::style::RGBColor;
 
-use crate::backend::{CONTROL_FREQUENCY, DESTINATION_RADIUS};
+use crate::backend::DESTINATION_RADIUS;
 use crate::backend::device::Device;
-use crate::backend::mathphysics::{Megahertz, Meter, Point3D, Position};
+use crate::backend::mathphysics::{Frequency, Meter, Point3D, Position};
 use crate::backend::networkmodel::attack::{AttackerDevice, AttackType};
-use crate::backend::signal::GPS_L1_FREQUENCY;
 
 use super::{
     DeviceColoring, Pixel, PlottersUnit, PlottersPoint3D, PlotResolution, 
@@ -116,13 +115,13 @@ pub fn attacker_device_primitive_on_all_frequencies(
 #[must_use]
 pub fn attacker_device_primitive(
     attacker_device: &AttackerDevice,
-    frequency: Megahertz,
+    frequency: Frequency,
     plot_resolution: PlotResolution
 ) -> PlottersCircle {
-    let point      = PlottersPoint3D::from(
+    let point = PlottersPoint3D::from(
         attacker_device.device().position()
     );
-    let radius     = attacker_device
+    let radius = attacker_device
         .device()
         .area_on(frequency)
         .radius();
@@ -134,7 +133,7 @@ pub fn attacker_device_primitive(
 
 fn attacker_device_area_color(
     attacker_device: &AttackerDevice,
-    frequency: Megahertz
+    frequency: Frequency
 ) -> RGBColor {
     let spoofs_gps = matches!(
         attacker_device.attack_type(), 
@@ -146,10 +145,9 @@ fn attacker_device_area_color(
     );
     
     match frequency {
-        GPS_L1_FREQUENCY if spoofs_gps       => ORANGE,
-        GPS_L1_FREQUENCY                     => RED,
-        CONTROL_FREQUENCY if spreads_malware => PINK_300,
-        CONTROL_FREQUENCY                    => BLUE,
-        _                                    => GREY
+        Frequency::GPS if spoofs_gps          => ORANGE,
+        Frequency::GPS                        => RED,
+        Frequency::Control if spreads_malware => PINK_300,
+        Frequency::Control                    => BLUE,
     }
 }

@@ -2,11 +2,12 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::backend::device::systems::TRXSystemError;
-use crate::backend::CONTROL_FREQUENCY;
 use crate::backend::device::{Device, IdToDelayMap};
 use crate::backend::malware::Malware;
-use crate::backend::mathphysics::{delay_to, Millisecond, Point3D, Position};
-use crate::backend::signal::{Data, Signal, SignalQueue, GPS_L1_FREQUENCY};
+use crate::backend::mathphysics::{
+    delay_to, Frequency, Millisecond, Point3D, Position
+};
+use crate::backend::signal::{Data, Signal, SignalQueue};
 
 
 #[derive(Error, Debug)]
@@ -30,7 +31,7 @@ pub fn add_malware_signals_to_queue(
 ) {
     let Some(signal_level) = source_device.tx_signal_level_at(
         destination_device, 
-        CONTROL_FREQUENCY
+        Frequency::Control
     ) else {
         return;
     };
@@ -45,7 +46,7 @@ pub fn add_malware_signals_to_queue(
             source_device.id(),
             destination_device.id(),
             Some(malware_data), 
-            CONTROL_FREQUENCY, 
+            Frequency::Control, 
             signal_level
         );
 
@@ -185,7 +186,7 @@ impl AttackerDevice {
         let Ok(spoofing_signal) = self.device.create_signal_for(
             target_device, 
             Some(Data::GPS(spoofed_position)), 
-            GPS_L1_FREQUENCY
+            Frequency::GPS,
         ) else {
             return Err(AttackError::TargetOutOfRange);
         };
@@ -218,7 +219,7 @@ impl AttackerDevice {
         let Ok(malware_signal) = self.device.create_signal_for(
             target_device, 
             Some(Data::Malware(malware)), 
-            CONTROL_FREQUENCY
+            Frequency::Control
         ) else {
             return Err(AttackError::TargetOutOfRange);
         };

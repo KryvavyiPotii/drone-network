@@ -4,15 +4,14 @@ use log::info;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
-use super::{CONTROL_FREQUENCY, DESTINATION_RADIUS, ITERATION_TIME};
+use super::{DESTINATION_RADIUS, ITERATION_TIME};
 use super::malware::{InfectionMap, Malware, MalwareType};
 use super::mathphysics::{
-    equation_of_motion_3d, millis_to_secs, Megahertz, Meter, MeterPerSecond, 
+    equation_of_motion_3d, millis_to_secs, Frequency, Meter, MeterPerSecond, 
     Millisecond, Point3D, Position, PowerUnit
 };
 use super::signal::{
     Data, FreqToLevelMap, Signal, SignalArea, SignalLevel, BLACK_SIGNAL_LEVEL, 
-    GPS_L1_FREQUENCY
 };
 use super::task::{Task, TaskType};
 
@@ -242,12 +241,12 @@ impl Device {
     }
     
     #[must_use]
-    pub fn tx_signal_level_on(&self, frequency: &Megahertz) -> &SignalLevel {
+    pub fn tx_signal_level_on(&self, frequency: &Frequency) -> &SignalLevel {
         self.trx_system.tx_signal_level_on(frequency)
     }
     
     #[must_use]
-    pub fn area_on(&self, frequency: Megahertz) -> SignalArea {
+    pub fn area_on(&self, frequency: Frequency) -> SignalArea {
         self.trx_system.area_on(frequency)
     }
 
@@ -255,19 +254,19 @@ impl Device {
     pub fn transmits_at_position<P>(
         &self,
         position: &P,
-        frequency: Megahertz,
+        frequency: Frequency,
     ) -> bool
     where
         P: Position
     {
-        self.transmits_at(self.distance_to(position), frequency)
+        self.trx_system.transmits_at(self.distance_to(position), frequency)
     }
     
     #[must_use]
     pub fn transmits_at(
         &self, 
         distance: Meter, 
-        frequency: Megahertz
+        frequency: Frequency
     ) -> bool {
         self.trx_system.transmits_at(distance, frequency)
     }
@@ -291,14 +290,11 @@ impl Device {
     pub fn tx_signal_level_at<P: Position>(
         &self,
         receiver: &P,
-        frequency: Megahertz
+        frequency: Frequency
     ) -> Option<SignalLevel> {
         let distance_to_rx = self.distance_to(receiver);
 
-        self.trx_system.tx_signal_level_at(
-            distance_to_rx, 
-            frequency
-        )
+        self.trx_system.tx_signal_level_at(distance_to_rx, frequency)
     }
 
     /// # Errors
@@ -308,7 +304,7 @@ impl Device {
         &self,
         receiver: &Self,
         data: Option<Data>,
-        frequency: Megahertz,
+        frequency: Frequency,
     ) -> Result<Signal, TRXSystemError> {
         let Some(signal_level) = self.tx_signal_level_at(
             receiver, 
@@ -331,7 +327,7 @@ impl Device {
     }
     
     #[must_use]
-    pub fn receives_signal_on(&self, frequency: &Megahertz) -> bool {
+    pub fn receives_signal_on(&self, frequency: &Frequency) -> bool {
         self.trx_system.receives_signal_on(frequency)
     }
     
@@ -372,7 +368,7 @@ impl Device {
         self.try_consume_power(PASSIVE_POWER_CONSUMPTION)?;
         self.handle_malware_infections();
         self.process_received_signals()?;
-        if self.receives_signal_on(&CONTROL_FREQUENCY) {
+        if self.receives_signal_on(&Frequency::Control) {
             self.process_task();
         } else {
             self.handle_signal_loss();
@@ -425,7 +421,7 @@ impl Device {
     }
 
     fn process_task(&mut self) {
-        let gps_is_connected = self.receives_signal_on(&GPS_L1_FREQUENCY); 
+        let gps_is_connected = self.receives_signal_on(&Frequency::GPS); 
 
         match self.task.destination() {
             Some(destination) if gps_is_connected  => {
@@ -561,7 +557,7 @@ impl Device {
             self.current_time,
             self.id,
             self.trx_system
-                .received_signal_on(&CONTROL_FREQUENCY)
+                .received_signal_on(&Frequency::Control)
                 .map_or(BLACK_SIGNAL_LEVEL, |(_, signal)| *signal.level())
         );
     }
@@ -622,6 +618,7 @@ mod tests {
     use systems::TRXSystemType;
 
     use crate::backend::device::systems::{RXModule, TXModule};
+    use crate::backend::mathphysics::Megahertz;
     use crate::backend::signal::{GREEN_SIGNAL_LEVEL, RED_SIGNAL_LEVEL};
 
     use super::*;
@@ -641,10 +638,10 @@ mod tests {
     fn control_tx_module(radius: Meter) -> TXModule {
         let tx_signal_level  = SignalLevel::from_area(
             SignalArea::build(radius).unwrap(), 
-            CONTROL_FREQUENCY
+            Frequency::Control as Megahertz
         );
         let tx_signal_levels = FreqToLevelMap::from([
-            (CONTROL_FREQUENCY, tx_signal_level)
+            (Frequency::Control, tx_signal_level)
         ]);
 
         TXModule::new(tx_signal_levels)
@@ -652,8 +649,8 @@ mod tests {
 
     fn rx_module() -> RXModule {
         let max_rx_signal_levels = FreqToLevelMap::from([
-            (GPS_L1_FREQUENCY, GREEN_SIGNAL_LEVEL),
-            (CONTROL_FREQUENCY, GREEN_SIGNAL_LEVEL)
+            (Frequency::GPS, GREEN_SIGNAL_LEVEL),
+            (Frequency::Control, GREEN_SIGNAL_LEVEL)
         ]);
 
         RXModule::new(max_rx_signal_levels)
@@ -781,7 +778,7 @@ mod tests {
                 SOME_DEVICE_ID,
                 device_without_signal.id(),
                 Some(gps_data), 
-                GPS_L1_FREQUENCY,
+                Frequency::GPS,
                 RED_SIGNAL_LEVEL,
             );
 
@@ -825,7 +822,7 @@ mod tests {
                 SOME_DEVICE_ID,
                 device_without_signal.id(),
                 Some(gps_data), 
-                GPS_L1_FREQUENCY,
+                Frequency::GPS,
                 RED_SIGNAL_LEVEL,
             );
 
@@ -880,7 +877,7 @@ mod tests {
                 SOME_DEVICE_ID,
                 device_without_signal.id(),
                 Some(gps_data), 
-                GPS_L1_FREQUENCY,
+                Frequency::GPS,
                 RED_SIGNAL_LEVEL,
             );
             
@@ -917,7 +914,7 @@ mod tests {
                 SOME_DEVICE_ID,
                 device_without_signal.id(),
                 Some(gps_data), 
-                GPS_L1_FREQUENCY,
+                Frequency::GPS,
                 RED_SIGNAL_LEVEL,
             );
 
@@ -1017,7 +1014,7 @@ mod tests {
                 SOME_DEVICE_ID,
                 device.id(),
                 Some(gps_data), 
-                GPS_L1_FREQUENCY,
+                Frequency::GPS,
                 RED_SIGNAL_LEVEL,
             );
             
@@ -1071,7 +1068,7 @@ mod tests {
             SOME_DEVICE_ID,
             device.id(),
             Some(Data::SetTask(task)),
-            CONTROL_FREQUENCY, 
+            Frequency::Control, 
             RED_SIGNAL_LEVEL, 
         );
         let time = 0;
@@ -1099,7 +1096,7 @@ mod tests {
             SOME_DEVICE_ID,
             device.id(),
             Some(Data::GPS(gps_position)), 
-            GPS_L1_FREQUENCY,
+            Frequency::GPS,
             RED_SIGNAL_LEVEL,
         );
         let time = 0;
@@ -1126,7 +1123,7 @@ mod tests {
             SOME_DEVICE_ID,
             BROADCAST_ID,
             Some(Data::SetTask(task)), 
-            CONTROL_FREQUENCY, 
+            Frequency::Control, 
             RED_SIGNAL_LEVEL, 
         );
         let time = 0;
@@ -1149,7 +1146,7 @@ mod tests {
             SOME_DEVICE_ID,
             device.id() + 1,
             Some(Data::SetTask(undefined_task)), 
-            CONTROL_FREQUENCY, 
+            Frequency::Control, 
             RED_SIGNAL_LEVEL, 
         );
 
@@ -1174,7 +1171,7 @@ mod tests {
             SOME_DEVICE_ID,
             BROADCAST_ID,
             Some(Data::Malware(malware)), 
-            CONTROL_FREQUENCY, 
+            Frequency::Control, 
             RED_SIGNAL_LEVEL, 
         );
         let time = 0;
@@ -1200,7 +1197,7 @@ mod tests {
             SOME_DEVICE_ID,
             BROADCAST_ID,
             Some(Data::Malware(malware)), 
-            CONTROL_FREQUENCY,
+            Frequency::Control,
             RED_SIGNAL_LEVEL, 
         );
         let time = 0;
