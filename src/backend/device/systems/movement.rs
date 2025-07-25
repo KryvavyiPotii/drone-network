@@ -30,17 +30,17 @@ impl MovementSystem {
             return Err(MovementSystemBuildError::NegativeMaxSpeed);
         }
 
-        Ok(
-            Self {
-                // Upon creation the system does not know its position.
-                // The position should be provided by GPS (from TRXSystem).
-                position_in_meters: Point3D::default(),
-                max_speed,
-                velocity_in_mps: Vector3D::default()
-            }
-        )
+        let movement_system = Self {
+            // Upon creation the system does not know its position.
+            // The position should be provided by GPS (from TRXSystem).
+            position_in_meters: Point3D::default(),
+            max_speed,
+            velocity_in_mps: Vector3D::default()
+        };
+
+        Ok(movement_system)
     }
-    
+
     #[must_use]
     pub fn position(&self) -> &Point3D {
         &self.position_in_meters
@@ -75,7 +75,7 @@ impl MovementSystem {
     }
     
     pub fn set_direction(&mut self, destination_in_meters: Point3D) {
-        if self.is_disabled() {
+        if self.max_speed == 0.0 {
             return;
         }
         
@@ -113,8 +113,7 @@ mod tests {
     #[test]
     fn setting_velocity() {
         let max_speed = 5.0;
-        let mut movement_system = MovementSystem::build(max_speed)
-            .unwrap();
+        let mut movement_system = MovementSystem::build(max_speed).unwrap();
 
         assert_eq!(*movement_system.velocity(), Vector3D::default());
 

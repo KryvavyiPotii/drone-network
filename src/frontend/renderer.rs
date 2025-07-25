@@ -5,6 +5,7 @@ use plotters::coord::types::RangedCoordf64;
 use plotters::prelude::*;
 
 use crate::backend::ITERATION_TIME;
+use crate::backend::device::{IdToDeviceMap, IdToTaskMap};
 use crate::backend::mathphysics::Point3D;
 use crate::backend::networkmodel::NetworkModel;
 use crate::backend::task::Task;
@@ -37,22 +38,30 @@ type PlottersChartContext<'a> = ChartContext<
 const FONT: &str = "sans-serif";
 
 
+fn task_map(device_map: &IdToDeviceMap) -> IdToTaskMap {
+    device_map
+        .iter()
+        .map(|(device_id, device)| (*device_id, *device.task()))
+        .collect()
+}
+
 fn network_model_destinations(network_model: &NetworkModel) -> Vec<Point3D> {
     let mut destinations = Vec::new();
 
-    let task_vec: Vec<Task> = network_model
-        .device_map()
-        .task_map()
+    let task_vec: Vec<Task> = task_map(network_model.device_map())
         .values()
         .copied()
         .collect();
 
     for task in task_vec {
-        let Some(destination) = task.destination() else {
-            continue;
+        let destination = match task {
+            Task::Attack(point) 
+                | Task::Reconnect(point) 
+                | Task::Reposition(point) => point,
+            Task::Undefined => continue,
         };
 
-        destinations.push(*destination);
+        destinations.push(destination);
     }
 
     destinations
@@ -222,7 +231,7 @@ impl<'a> PlottersRenderer<'a> {
     ) {
         let device_primitives = network_model
             .device_map()
-            .devices()
+            .values()
             .map(|device|
                 device_primitive(
                     device, 

@@ -1,64 +1,81 @@
 use serde::{Deserialize, Serialize};
 
 use crate::backend::mathphysics::{Frequency, Megahertz, Meter};
-use crate::backend::signal::{BLACK_SIGNAL_LEVEL, FreqToLevelMap, SignalLevel};
+use crate::backend::signal::{FreqToQualityMap, SignalQuality};
 
 
-// By default we create a non-functioning TXModule.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
+pub enum TXModuleType {
+    Level,
+    #[default]
+    Strength,
+}
+
+
+// By default we create a non-functioning `TXModule` based on signal strength.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct TXModule {
-    signal_levels: FreqToLevelMap
+    module_type: TXModuleType, 
+    signal_quality_map: FreqToQualityMap
 }
 
 impl TXModule {
     #[must_use]
-    pub fn new(signal_levels: FreqToLevelMap) -> Self {
-        Self { signal_levels }
+    pub fn new(
+        module_type: TXModuleType, 
+        signal_quality_map: FreqToQualityMap
+    ) -> Self {
+        Self { module_type, signal_quality_map }
     }
 
     #[must_use]
-    pub fn signal_levels(&self) -> &FreqToLevelMap {
-        &self.signal_levels
+    pub fn signal_quality_map(&self) -> &FreqToQualityMap {
+        &self.signal_quality_map
     }
 
     #[must_use]
-    pub fn signal_level_on(&self, frequency: &Frequency) -> &SignalLevel {
-        self.signal_levels
-            .get(frequency)
-            .unwrap_or(&BLACK_SIGNAL_LEVEL)
-    }
-    
-    #[must_use]
-    pub fn signal_level_at_by_color(
-        &self,
-        distance: Meter,
-        frequency: Frequency,
-    ) -> Option<SignalLevel> {
-        let signal_level = self
-            .signal_level_on(&frequency)
-            .at_by_color(frequency as Megahertz, distance);
-        
-        if signal_level.is_black() {
-            return None;
-        } 
-
-        Some(signal_level)
+    pub fn signal_quality_on(
+        &self, 
+        frequency: &Frequency
+    ) -> Option<&SignalQuality> {
+        self.signal_quality_map.get(frequency)
     }
     
     #[must_use]
-    pub fn signal_level_at_by_strength(
+    pub fn signal_quality_at(
+        &self, 
+        distance: Meter,
+        frequency: Frequency,
+    ) -> Option<SignalQuality> {
+        match self.module_type {
+            TXModuleType::Level    => 
+                self.signal_quality_at_by_level(distance, frequency),
+            TXModuleType::Strength => 
+                self.signal_quality_at_by_strength(distance, frequency),
+        }
+    }
+    
+    fn signal_quality_at_by_level(
         &self,
         distance: Meter,
         frequency: Frequency,
-    ) -> Option<SignalLevel> {
-        let signal_level = self
-            .signal_level_on(&frequency)
-            .at(frequency as Megahertz, distance);
-        
-        if signal_level.is_black() {
-            return None;
-        } 
-
-        Some(signal_level)
+    ) -> Option<SignalQuality> {
+        self
+            .signal_quality_on(&frequency)
+            .map(|signal_quality| 
+                signal_quality.at_by_level(frequency as Megahertz, distance)
+            )
+    }
+    
+    fn signal_quality_at_by_strength(
+        &self,
+        distance: Meter,
+        frequency: Frequency,
+    ) -> Option<SignalQuality> {
+        self
+            .signal_quality_on(&frequency)
+            .map(|signal_quality| 
+                signal_quality.at_by_strength(frequency as Megahertz, distance)
+            )
     }
 }

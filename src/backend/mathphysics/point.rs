@@ -1,22 +1,13 @@
-use std::ops;
-
 use serde::{Deserialize, Serialize};
 
-use derive_more::{MulAssign, DivAssign};
-use impl_ops::{
-    _impl_binary_op_borrowed_borrowed, _impl_binary_op_borrowed_owned, 
-    _impl_binary_op_internal, _impl_binary_op_owned_borrowed, 
-    _impl_binary_op_owned_owned, _parse_binary_op, impl_op, impl_op_ex
-};
+use derive_more::{Add, Div, DivAssign, Mul, MulAssign, Sub};
 
 use super::Position;
 
 
 #[derive(
-    Copy, Clone, 
-    PartialEq, MulAssign, DivAssign, 
-    Debug, Default, 
-    Serialize, Deserialize
+    Copy, Clone, PartialEq, Add, Sub, Mul, MulAssign, Div, DivAssign, Debug, 
+    Default, Serialize, Deserialize,
 )]
 pub struct Point3D { 
     pub x: f32, 
@@ -28,62 +19,6 @@ impl Point3D {
     #[must_use]
     pub fn new(x: f32, y: f32, z: f32) -> Self {
         Self { x, y, z }
-    }
-}
-
-impl_op_ex!(
-    + |a: &Point3D, b: &Point3D| -> Point3D { 
-        Point3D {
-            x: a.x + b.x,
-            y: a.y + b.y,
-            z: a.z + b.z,
-        }
-    }
-);
-
-impl_op_ex!(
-    - |a: &Point3D, b: &Point3D| -> Point3D { 
-        Point3D {
-            x: a.x - b.x,
-            y: a.y - b.y,
-            z: a.z - b.z,
-        }
-    }
-);
-
-impl_op_ex!(
-    * |a: &Point3D, b: &Point3D| -> Point3D { 
-        Point3D {
-            x: a.x * b.x,
-            y: a.y * b.y,
-            z: a.z * b.z,
-        }
-    }
-);
-
-impl_op_ex!(
-    / |a: &Point3D, b: &Point3D| -> Point3D { 
-        Point3D {
-            x: a.x / b.x,
-            y: a.y / b.y,
-            z: a.z / b.z,
-        }
-    }
-);
-
-impl PartialEq<&Point3D> for Point3D {
-    fn eq(&self, other: &&Point3D) -> bool {
-        self.x == other.x 
-        && self.y == other.y 
-        && self.z == other.z
-    }
-}
-
-impl PartialEq<Point3D> for &Point3D {
-    fn eq(&self, other: &Point3D) -> bool {
-        self.x == other.x 
-        && self.y == other.y 
-        && self.z == other.z
     }
 }
 

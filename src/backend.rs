@@ -10,5 +10,5 @@ pub mod signal;
 pub mod task;
 
 
-pub const DESTINATION_RADIUS: Meter    = 5.0;
-pub const ITERATION_TIME: Millisecond  = 50;
+pub const DESTINATION_RADIUS: Meter   = 5.0;
+pub const ITERATION_TIME: Millisecond = 50;

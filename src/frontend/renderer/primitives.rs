@@ -100,7 +100,7 @@ pub fn attacker_device_primitive_on_all_frequencies(
 ) -> Vec<PlottersCircle> {
     attacker_device
         .device()
-        .tx_signal_levels()
+        .tx_signal_quality_map()
         .keys()
         .map(|frequency|
             attacker_device_primitive(

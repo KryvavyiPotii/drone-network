@@ -1,7 +1,6 @@
 pub type Millisecond = i32;
 pub type Second = f32;
 pub type Meter = f32;
-pub type Kilometer = f32;
 pub type KilometerPerSecond = f32;
 pub type MeterPerMillisecond = f32;
 pub type MeterPerSecond = f32;

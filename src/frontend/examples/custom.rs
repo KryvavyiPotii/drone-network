@@ -27,7 +27,7 @@ pub fn custom(
         );
 
     let mut model_player = ModelPlayer::new(
-        model_player_config.output_directory(),
+        model_player_config.json_output_directory(),
         network_model,
         renderer,
         model_player_config.simulation_time(),

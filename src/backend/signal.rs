@@ -8,21 +8,15 @@ use super::mathphysics::{Frequency, Point3D};
 use super::task::Task;
 
 
-pub use level::*;
-pub use strength::*;
+pub use quality::*;
 pub use queue::*;
 
 
-pub mod level;
-pub mod strength;
+pub mod quality;
 pub mod queue;
 
 
-// Const for proper signal strength scaling at distance.
-const SIGNAL_STRENGTH_SCALING: f32 = 2_500.0; 
-
-
-pub type FreqToLevelMap = HashMap<Frequency, SignalLevel>;
+pub type FreqToQualityMap = HashMap<Frequency, SignalQuality>;
 
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -42,7 +36,7 @@ pub struct Signal {
     destination_id: DeviceId,
     data: Data,
     frequency: Frequency,
-    level: SignalLevel,
+    quality: SignalQuality,
 }
 
 impl Signal {
@@ -52,14 +46,14 @@ impl Signal {
         destination_id: DeviceId,
         data: Data,
         frequency: Frequency,
-        level: SignalLevel,
+        quality: SignalQuality,
     ) -> Self {
         Self { 
             source_id,
             destination_id,
             data,
             frequency,
-            level, 
+            quality, 
         }
     }
 
@@ -89,8 +83,8 @@ impl Signal {
     }
 
     #[must_use]
-    pub fn level(&self) -> &SignalLevel {
-        &self.level
+    pub fn quality(&self) -> &SignalQuality {
+        &self.quality
     }
     
     #[must_use]

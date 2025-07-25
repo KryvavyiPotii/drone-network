@@ -7,15 +7,17 @@ use crate::backend::device::{
 };
 use crate::backend::device::systems::{
     MovementSystem, PowerSystem, RXModule, SecuritySystem, TRXSystem, TXModule, 
-    TRXSystemType
+    TXModuleType
 };
 use crate::backend::malware::{Malware, MalwareType};
 use crate::backend::mathphysics::{
     Frequency, Megahertz, Meter, Point3D, PowerUnit
 };
 use crate::backend::networkmodel::gps::GPS;
-use crate::backend::signal::{FreqToLevelMap, SignalLevel, GREEN_SIGNAL_LEVEL};
-use crate::backend::task::{Scenario, Task, TaskType};
+use crate::backend::signal::{
+    FreqToQualityMap, SignalQuality, GREEN_SIGNAL_QUALITY
+};
+use crate::backend::task::{Scenario, Task};
 use crate::frontend::{MALWARE_INFECTION_DELAY, MALWARE_SPREAD_DELAY};
 
 
@@ -37,16 +39,16 @@ pub fn create_drone_vec(
     drone_count: usize, 
     network_position: &NetworkPosition,
     malware: Option<Malware>,
-    trx_system_type: TRXSystemType,
+    tx_module_type: TXModuleType,
     tx_control_area_radius: Meter,
-    max_gps_rx_signal_level: SignalLevel,
+    max_gps_rx_signal_quality: SignalQuality,
 ) -> Vec<Device> {
     let power_system    = device_power_system();
     let movement_system = device_movement_system();
     let trx_system      = drone_trx_system(
-        trx_system_type, 
+        tx_module_type, 
         tx_control_area_radius,
-        max_gps_rx_signal_level
+        max_gps_rx_signal_quality
     );
     let patches = match malware {
         Some(malware) => vec![malware],
@@ -58,7 +60,7 @@ pub fn create_drone_vec(
         .set_power_system(power_system)
         .set_movement_system(movement_system)
         .set_trx_system(trx_system)
-        .set_signal_loss_response(SignalLossResponse::Hover);
+        .set_signal_loss_response(SignalLossResponse::Ignore);
 
     (0..drone_count)
         .map(|_| {
@@ -90,78 +92,67 @@ fn generate_drone_position(network_position: &NetworkPosition) -> Point3D {
 }
 
 pub fn cc_trx_system(
-    trx_system_type: TRXSystemType, 
+    tx_module_type: TXModuleType, 
     tx_control_area_radius: Meter
 ) -> TRXSystem {
-    let tx_module = tx_module(Frequency::Control, tx_control_area_radius);
-    let rx_module = rx_module(GREEN_SIGNAL_LEVEL);
-
-    TRXSystem::new( 
-        trx_system_type,
-        tx_module, 
-        rx_module
+    TRXSystem::new(
+        tx_module(tx_module_type, Frequency::Control, tx_control_area_radius), 
+        rx_module(GREEN_SIGNAL_QUALITY)
     )
 }
 
 pub fn drone_trx_system(
-    trx_system_type: TRXSystemType, 
+    tx_module_type: TXModuleType, 
     tx_control_area_radius: Meter,
-    max_gps_rx_signal_level: SignalLevel
+    max_gps_rx_signal_quality: SignalQuality
 ) -> TRXSystem {
-    TRXSystem::new(
-        trx_system_type,
-        tx_module(Frequency::Control, tx_control_area_radius), 
-        rx_module(max_gps_rx_signal_level),
+    TRXSystem::new( 
+        tx_module(tx_module_type, Frequency::Control, tx_control_area_radius), 
+        rx_module(max_gps_rx_signal_quality),
     )
 }
  
 pub fn ewd_trx_system(
-    trx_system_type: TRXSystemType,
+    tx_module_type: TXModuleType,
     frequency: Frequency,
     suppression_area_radius: Meter
 ) -> TRXSystem {
-    TRXSystem::new( 
-        trx_system_type,
-        tx_module(frequency, suppression_area_radius), 
+    TRXSystem::new(  
+        tx_module(tx_module_type, frequency, suppression_area_radius), 
         RXModule::default()
     )
 }
 
-pub fn default_gps(trx_system_type: TRXSystemType) -> GPS {
-    let trx_system = TRXSystem::new( 
-        trx_system_type,
-        tx_module(Frequency::GPS, GPS_TX_RADIUS),
+fn gps_trx_system(tx_module_type: TXModuleType) -> TRXSystem {
+    TRXSystem::new( 
+        tx_module(tx_module_type, Frequency::GPS, GPS_TX_RADIUS), 
         RXModule::default()
-    );
-
-    let device = DeviceBuilder::new()
-        .set_real_position(DEFAULT_GPS_POSITION_IN_METERS)
-        .set_signal_loss_response(SignalLossResponse::Ignore)
-        .set_power_system(device_power_system())
-        .set_trx_system(trx_system)
-        .build();
-
-    GPS::new(device)
+    )
 }
 
-pub fn tx_module(frequency: Frequency, tx_area_radius: Meter) -> TXModule {
-    let tx_signal_level = SignalLevel::from_area_radius(
+pub fn tx_module(
+    tx_module_type: TXModuleType, 
+    frequency: Frequency, 
+    tx_area_radius: Meter
+) -> TXModule {
+    let tx_signal_quality = SignalQuality::from_area_radius(
         tx_area_radius, 
         Frequency::Control as Megahertz
     );
-
-    let tx_signal_levels = FreqToLevelMap::from([(frequency, tx_signal_level)]);
-
-    TXModule::new(tx_signal_levels)
-}
-
-pub fn rx_module(max_gps_rx_signal_level: SignalLevel) -> RXModule {
-    let max_rx_signal_levels = FreqToLevelMap::from([
-        (Frequency::Control, SignalLevel::from(10_000.0)),
-        (Frequency::GPS, max_gps_rx_signal_level)
+    let tx_signal_qualities = FreqToQualityMap::from([
+        (frequency, tx_signal_quality)
     ]);
 
-    RXModule::new(max_rx_signal_levels)
+    TXModule::new(tx_module_type, tx_signal_qualities)
+}
+
+pub fn rx_module(max_gps_rx_signal_quality: SignalQuality) -> RXModule {
+    let max_rx_signal_qualities = FreqToQualityMap::from([
+        (Frequency::Control, SignalQuality::from(10_000.0)),
+        (Frequency::GPS, max_gps_rx_signal_quality)
+    ]);
+
+    RXModule::new(max_rx_signal_qualities)
 }
 
 pub fn device_power_system() -> PowerSystem {
@@ -183,28 +174,25 @@ pub fn default_network_position(network_origin: Point3D) -> NetworkPosition {
     )
 }
 
-pub fn attack_scenario() -> Scenario {
-    let attack_task = Task::new(
-        TaskType::Attack,
-        Some(DRONE_DESTINATION)
-    );
+pub fn default_gps(tx_module_type: TXModuleType) -> GPS {
+    let device = DeviceBuilder::new()
+        .set_real_position(DEFAULT_GPS_POSITION_IN_METERS)
+        .set_signal_loss_response(SignalLossResponse::Ignore)
+        .set_power_system(device_power_system())
+        .set_trx_system(gps_trx_system(tx_module_type))
+        .build();
 
-    Scenario::from([(0, BROADCAST_ID, attack_task)])
+    GPS::new(device)
+}
+
+pub fn attack_scenario() -> Scenario {
+    Scenario::from([(0, BROADCAST_ID, Task::Attack(DRONE_DESTINATION))])
 }
 
 pub fn reposition_scenario() -> Scenario {
-    let task1 = Task::new(
-        TaskType::Reposition,
-        Some(DRONE_DESTINATION)
-    );
-    let task2 = Task::new(
-        TaskType::Reposition,
-        Some(Point3D::new(0.0, 0.0, 150.0))
-    );
-    let task3 = Task::new(
-        TaskType::Reposition,
-        Some(Point3D::new(0.0, 150.0, 150.0))
-    );
+    let task1 = Task::Reposition(DRONE_DESTINATION);
+    let task2 = Task::Reposition(Point3D::new(0.0, 0.0, 150.0));
+    let task3 = Task::Reposition(Point3D::new(0.0, 150.0, 150.0));
     let task4 = task1;
 
     Scenario::from([

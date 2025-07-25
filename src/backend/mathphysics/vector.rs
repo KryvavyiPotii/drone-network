@@ -5,10 +5,8 @@ use super::point::Point3D;
 
 
 #[derive(
-    Copy, Clone, 
-    PartialEq, Add, Sub, Mul, Div, MulAssign, DivAssign, 
-    Debug, Default, 
-    Serialize, Deserialize
+    Copy, Clone, PartialEq, Add, Sub, Mul, Div, MulAssign, DivAssign, Debug, 
+    Default, Serialize, Deserialize
 )]
 pub struct Vector3D {
     pub initial_point: Point3D,
@@ -63,6 +61,7 @@ impl Vector3D {
         *self *= scaled_size;
     }
 }
+
 
 #[cfg(test)]
 mod tests {

@@ -13,11 +13,6 @@ pub mod unit;
 pub mod vector;
 
 
-pub const INVALID_POSITION: Point3D = Point3D { 
-    x: f32::NAN, y: f32::NAN, z: f32::NAN
-};
-
-
 #[must_use]
 pub fn delay_to(distance: Meter, multiplier: f32) -> Millisecond {    
     if multiplier == 0.0 {
@@ -64,54 +59,20 @@ pub trait Position {
         
         vector.size()
     }
-
-    /// # Panics
-    ///
-    /// Will panic if distances are not comparable.
-    fn cmp_by_distance_to<P: Position>(
-        &self, 
-        other: &P, 
-        destination: &P
-    ) -> std::cmp::Ordering {
-        let distance_x = self.distance_to(destination);
-        let distance_y = other.distance_to(destination);
-        
-        distance_x
-            .partial_cmp(&distance_y)
-            .expect("Failed to compare f32 values")
-    }
 }
+
 
 #[cfg(test)]
 mod tests {
     use super::*;
 
-    const ORIGIN: Point3D = Point3D { x: 0.0, y: 0.0, z: 0.0 };
 
     #[test]
     fn distance_to_another_point() {
+        let origin = Point3D::default();
         let some_point = Point3D::new(5.0, 0.0, 0.0);
 
-        assert_eq!(0.0, ORIGIN.distance_to(&ORIGIN));
-        assert_eq!(5.0, ORIGIN.distance_to(&some_point));
-    }
-
-    #[test]
-    fn comparison_by_distance() {
-        let point_a = Point3D::new(5.0, 0.0, 0.0);
-        let point_b = Point3D::new(0.0, -5.0, 0.0);
-
-        assert_eq!(
-            7.0,
-            point_a.distance_to(&point_b).round()
-        );
-        assert_eq!(
-            ORIGIN.distance_to(&point_a),
-            point_a.distance_to(&ORIGIN)
-        );
-        assert_eq!(
-            ORIGIN.distance_to(&point_a),
-            point_b.distance_to(&ORIGIN)
-        );
+        assert_eq!(0.0, origin.distance_to(&origin));
+        assert_eq!(5.0, origin.distance_to(&some_point));
     }
 }

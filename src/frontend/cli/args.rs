@@ -3,7 +3,7 @@ use std::path::{Path, PathBuf};
 use clap::ArgMatches;
 
 use crate::backend::connections::Topology;
-use crate::backend::device::systems::TRXSystemType;
+use crate::backend::device::systems::TXModuleType;
 use crate::backend::malware::{Malware, MalwareType};
 use crate::backend::mathphysics::Millisecond;
 use crate::frontend::{MALWARE_INFECTION_DELAY, MALWARE_SPREAD_DELAY};
@@ -21,16 +21,16 @@ pub const ARG_DELAY_MULTIPLIER: &str = "delay multiplier";
 pub const ARG_DISPLAY_MALWARE_PROPAGATION: &str = "display malware propagation";
 pub const ARG_DRONE_COUNT: &str      = "drone count";
 pub const ARG_EXPERIMENT_TITLE: &str = "experiment title";
-pub const ARG_INPUT_MODEL: &str      = "network model path";
+pub const ARG_JSON_INPUT: &str       = "json input path";
+pub const ARG_JSON_OUTPUT: &str      = "json directory output path";
 pub const ARG_MALWARE_TYPE: &str     = "malware type";
 pub const ARG_NETWORK_TOPOLOGY: &str = "network topology";
 pub const ARG_NO_PLOT: &str          = "no GIF rendering";
-pub const ARG_OUTPUT_DIR: &str       = "output directory path";
 pub const ARG_PLOT_CAPTION: &str     = "plot caption";
 pub const ARG_PLOT_HEIGHT: &str      = "plot height";
 pub const ARG_PLOT_WIDTH: &str       = "plot width";
 pub const ARG_SIM_TIME: &str         = "simulation time";
-pub const ARG_TRX_SYSTEM: &str       = "trx system type";
+pub const ARG_TX_MODULE: &str        = "tx module type";
 
 pub const EXP_CUSTOM: &str            = "custom";
 pub const EXP_GPS_ONLY: &str          = "gpsewd";
@@ -45,8 +45,8 @@ pub const MAL_INDICATOR: &str = "indicator";
 pub const TOPOLOGY_MESH: &str = "mesh";
 pub const TOPOLOGY_STAR: &str = "star";
 
-pub const TRX_COLOR: &str    = "color";
-pub const TRX_STRENGTH: &str = "strength";
+pub const TX_LEVEL: &str    = "level";
+pub const TX_STRENGTH: &str = "strength";
 
 pub const DEFAULT_DELAY_MULTIPLIER: &str = "0.0";
 pub const DEFAULT_DRONE_COUNT: &str      = "100";
@@ -110,7 +110,7 @@ fn model_player_config(matches: &ArgMatches) -> ModelPlayerConfig {
     };
 
     ModelPlayerConfig::new(
-        output_directory(matches), 
+        json_output_directory(matches), 
         render_config,
         simulation_time(matches),
     )
@@ -129,19 +129,19 @@ fn render_config(matches: &ArgMatches) -> RenderConfig {
 
 fn input_model_path(matches: &ArgMatches) -> Option<PathBuf> {
     matches
-        .get_one::<PathBuf>(ARG_INPUT_MODEL)
+        .get_one::<PathBuf>(ARG_JSON_INPUT)
         .cloned()
 }
 
-fn trx_system_type(matches: &ArgMatches) -> TRXSystemType {
+fn trx_system_type(matches: &ArgMatches) -> TXModuleType {
     match matches
-        .get_one::<String>(ARG_TRX_SYSTEM) 
+        .get_one::<String>(ARG_TX_MODULE) 
         .unwrap()
         .as_str() 
     {
-        TRX_COLOR    => TRXSystemType::Color,
-        TRX_STRENGTH => TRXSystemType::Strength,
-        _             => panic!("Wrong TRX system type")
+        TX_LEVEL    => TXModuleType::Level,
+        TX_STRENGTH => TXModuleType::Strength,
+        _           => panic!("Wrong TX module type")
     }
 }
 
@@ -187,9 +187,9 @@ fn malware(matches: &ArgMatches) -> Option<Malware> {
     Some(malware)
 }
 
-fn output_directory(matches: &ArgMatches) -> Option<&Path> {
+fn json_output_directory(matches: &ArgMatches) -> Option<&Path> {
     matches
-        .get_one::<PathBuf>(ARG_OUTPUT_DIR)
+        .get_one::<PathBuf>(ARG_JSON_OUTPUT)
         .map(|p| &**p)
 }
 

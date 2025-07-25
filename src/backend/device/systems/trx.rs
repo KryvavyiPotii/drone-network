@@ -2,10 +2,10 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::backend::mathphysics::{Frequency, Megahertz, Meter, Millisecond};
-use crate::backend::signal::{FreqToLevelMap, Signal, SignalLevel};
+use crate::backend::signal::{FreqToQualityMap, Signal, SignalQuality};
 
 pub use rx::{ReceivedSignal, RXError, RXModule};
-pub use tx::TXModule;
+pub use tx::{TXModule, TXModuleType};
 
 
 mod rx;
@@ -25,64 +25,49 @@ pub enum TRXSystemError {
 }
 
 
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub enum TRXSystemType {
-    Color,
-    #[default]
-    Strength,
-}
-
-
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct TRXSystem {
-    trx_system_type: TRXSystemType,
     tx_module: TXModule, 
     rx_module: RXModule,
 }
 
 impl TRXSystem {
     #[must_use]
-    pub fn new(
-        trx_system_type: TRXSystemType,
-        tx_module: TXModule, 
-        rx_module: RXModule,
-    ) -> Self {
-        Self {
-            trx_system_type,
-            tx_module,
-            rx_module
-        }
+    pub fn new(tx_module: TXModule, rx_module: RXModule) -> Self {
+        Self { tx_module, rx_module }
     }
 
     #[must_use]
-    pub fn tx_signal_levels(&self) -> &FreqToLevelMap {
-        self.tx_module.signal_levels() 
+    pub fn tx_signal_quality_map(&self) -> &FreqToQualityMap {
+        self.tx_module.signal_quality_map() 
     }
 
     #[must_use]
-    pub fn tx_signal_level_on(&self, frequency: &Frequency) -> &SignalLevel {
-        self.tx_module.signal_level_on(frequency) 
+    pub fn tx_signal_quality_on(
+        &self, 
+        frequency: &Frequency
+    ) -> Option<&SignalQuality> {
+        self.tx_module.signal_quality_on(frequency) 
     }
 
     #[must_use]
     pub fn area_radius_on(&self, frequency: Frequency) -> Meter {
         self.tx_module
-            .signal_level_on(&frequency)
-            .area_radius_on(frequency as Megahertz)
+            .signal_quality_on(&frequency)
+            .map_or(
+                0.0, 
+                |tx_signal_quality| 
+                    tx_signal_quality.area_radius_on(frequency as Megahertz)
+            )
     }
 
     #[must_use]
-    pub fn tx_signal_level_at(
+    pub fn tx_signal_quality_at(
         &self, 
         distance: Meter,
         frequency: Frequency,
-    ) -> Option<SignalLevel> {
-        match self.trx_system_type {
-            TRXSystemType::Color    => 
-                self.tx_module.signal_level_at_by_color(distance, frequency),
-            TRXSystemType::Strength => 
-                self.tx_module.signal_level_at_by_strength(distance, frequency),
-        }
+    ) -> Option<SignalQuality> {
+        self.tx_module.signal_quality_at(distance, frequency)
     }
     
     #[must_use]
@@ -91,7 +76,7 @@ impl TRXSystem {
         distance: Meter, 
         frequency: Frequency
     ) -> bool {
-        self.tx_signal_level_at(distance, frequency).is_some()
+        self.tx_module.signal_quality_at(distance, frequency).is_some()
     }
    
     #[must_use]

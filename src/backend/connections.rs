@@ -1,6 +1,5 @@
 use std::fmt;
 
-use rustworkx_core::distancemap::DistanceMap;
 use serde::{self, Serialize};
 use serde::ser::{Serializer, SerializeStruct};
 use serde::de::{self, Deserialize, Deserializer, Visitor, SeqAccess, MapAccess};
@@ -16,12 +15,12 @@ use super::device::{
     Device, DeviceId, IdToDelayMap, IdToDeviceMap, BROADCAST_ID
 };
 use super::mathphysics::{delay_to, Frequency, Meter, Position};
-use super::signal::SignalLevel;
+use super::signal::SignalQuality;
 
 
-type Connection<'a> = (DeviceId, DeviceId, &'a (Meter, SignalLevel));
-type SerdeEdge      = (DeviceId, DeviceId, (Meter, SignalLevel));
-type ConnectionMap  = GraphMap<DeviceId, (Meter, SignalLevel), Directed>;
+type Connection<'a> = (DeviceId, DeviceId, &'a (Meter, SignalQuality));
+type SerdeEdge      = (DeviceId, DeviceId, (Meter, SignalQuality));
+type ConnectionMap  = GraphMap<DeviceId, (Meter, SignalQuality), Directed>;
 
 
 #[derive(Error, Debug)]
@@ -33,30 +32,11 @@ pub enum ShortestPathError {
 }
     
 
-fn unicast_delay_map_from_outside_network(
-    destination_id: DeviceId,
-    source_device: &Device,
-    device_map: &IdToDeviceMap,
-    delay_multiplier: f32,
-) -> IdToDelayMap {
-    let Some(destination_device) = device_map.get(&destination_id) else {
-        return IdToDelayMap::new();
-    };
-    
-    let delay = delay_to(
-        source_device.distance_to(destination_device), 
-        delay_multiplier
-    );
-
-    IdToDelayMap::from([(destination_id, delay)])
-}
-
-
 #[derive(Clone, Copy, Debug, Default, Serialize, serde::Deserialize)]
 pub enum Topology {
+    Mesh,
     #[default]
     Star,
-    Mesh,
 }
 
 
@@ -81,12 +61,11 @@ impl ConnectionGraph {
     }
 
     // Currently, it considers only distances between devices while building the 
-    // most efficient paths. It ignores signal levels of devices.
+    // most efficient paths. It ignores signal qualities of devices.
     pub fn update(
         &mut self, 
         command_device_id: DeviceId,
         device_map: &IdToDeviceMap,
-        frequency: Frequency
     ) {
         self.graph_map.clear();
         
@@ -95,10 +74,8 @@ impl ConnectionGraph {
         };
 
         match self.topology {
-            Topology::Star => 
-                self.create_star(command_device, device_map, frequency),
-            Topology::Mesh => 
-                self.create_mesh(device_map, frequency),
+            Topology::Star => self.create_star(command_device, device_map),
+            Topology::Mesh => self.create_mesh(device_map),
         }
     }
 
@@ -106,31 +83,21 @@ impl ConnectionGraph {
         &mut self,
         central_device: &Device,
         device_map: &IdToDeviceMap,
-        frequency: Frequency
     ) {
-        for device in device_map.devices() {
-            self.connect_devices(central_device, device, frequency);    
+        for device in device_map.values() {
+            self.connect_devices(central_device, device); 
         }
     }
 
-    fn create_mesh(
-        &mut self, 
-        device_map: &IdToDeviceMap,
-        frequency: Frequency
-    ) {
-        for tx in device_map.devices() {
-            for rx in device_map.devices() {
-                self.connect_devices(tx, rx, frequency);    
+    fn create_mesh(&mut self, device_map: &IdToDeviceMap) {
+        for tx in device_map.values() {
+            for rx in device_map.values() {
+                self.connect_devices(tx, rx);    
             }
         }
     }
 
-    fn connect_devices(
-        &mut self,
-        device1: &Device,
-        device2: &Device,
-        frequency: Frequency,
-    ) {
+    fn connect_devices(&mut self, device1: &Device, device2: &Device) {
         // Loops are prohibited. Otherwise, shortest path algorithms will 
         // not function properly.
         if device1.id() == device2.id() {
@@ -139,24 +106,28 @@ impl ConnectionGraph {
 
         let distance = device2.distance_to(device1);
 
-        if let Some(tx_signal_level_from_device1) = device1.tx_signal_level_at(
+        self.connect_devices_in_one_direction(device1, device2, distance);
+        self.connect_devices_in_one_direction(device2, device1, distance);
+    }
+
+    fn connect_devices_in_one_direction(
+        &mut self,
+        device1: &Device,
+        device2: &Device,
+        distance: Meter,
+    ) {
+        if let Some(tx_signal_quality_from_1) = device1.tx_signal_quality_at(
             device2, 
-            frequency
+            Frequency::Control
         ) {
+            if tx_signal_quality_from_1.is_black() {
+                return;
+            }
+
             self.graph_map.add_edge(
                 device1.id(), 
                 device2.id(), 
-                (distance, tx_signal_level_from_device1)
-            );
-        }
-        if let Some(tx_signal_level_from_device2) = device2.tx_signal_level_at(
-            device1, 
-            frequency
-        ) {   
-            self.graph_map.add_edge(
-                device2.id(), 
-                device1.id(), 
-                (distance, tx_signal_level_from_device2)
+                (distance, tx_signal_quality_from_1)
             );
         }
     }
@@ -191,45 +162,8 @@ impl ConnectionGraph {
         destination: DeviceId,
         delay_multiplier: f32,
     ) -> IdToDelayMap {
-        if destination == BROADCAST_ID {
-            return self.broadcast_delay_map_from_inside_network(
-                source, 
-                delay_multiplier
-            );
-        }
-
-        self.unicast_delay_map_from_inside_network(
-            source, 
-            destination, 
-            delay_multiplier
-        )
-    }
-    
-    fn unicast_delay_map_from_inside_network(
-        &self, 
-        source: DeviceId,
-        destination: DeviceId,
-        delay_multiplier: f32
-    ) -> IdToDelayMap {
-        let distance_map = self
-            .dijkstra(source, Some(destination))
-            .unwrap();
-        
-        let distance = distance_map
-            .get_item(destination)
-            .unwrap();
-
-        IdToDelayMap::from([
-            (destination, delay_to(*distance, delay_multiplier))
-        ])
-    }
- 
-    fn broadcast_delay_map_from_inside_network(
-        &self, 
-        source: DeviceId,
-        delay_multiplier: f32
-    ) -> IdToDelayMap {
-        let distance_map = self.dijkstra(source, None).unwrap();
+        let distance_map = self.dijkstra(source, destination)
+            .unwrap_or_else(|error| panic!("{}", error));
 
         distance_map
             .iter()
@@ -248,41 +182,25 @@ impl ConnectionGraph {
         device_map: &IdToDeviceMap,
         delay_multiplier: f32,
     ) -> IdToDelayMap {
-        if destination_id == BROADCAST_ID {
-            return self.broadcast_delay_map_from_outside_network(
-                destination_id, 
-                source_device, 
-                device_map, 
-                delay_multiplier
-            );
-        } 
+        let destination_ids: Vec<DeviceId> = if destination_id == BROADCAST_ID {
+            self.graph_map.nodes().collect()
+        } else if self.graph_map.contains_node(destination_id) {
+            vec![destination_id]
+        } else {
+            Vec::new()
+        };
 
-        unicast_delay_map_from_outside_network(
-            destination_id, 
-            source_device, 
-            device_map, 
-            delay_multiplier
-        )
-    }
-
-    fn broadcast_delay_map_from_outside_network(
-        &self,
-        destination_id: DeviceId,
-        source_device: &Device,
-        device_map: &IdToDeviceMap,
-        delay_multiplier: f32,
-    ) -> IdToDelayMap {
-        self.graph_map
-            .nodes()
-            .filter_map(|device_id| {
-                let destination_device = device_map.get(&destination_id)?; 
+        destination_ids
+            .iter()
+            .filter_map(|destination_id| {
+                let destination_device = device_map.get(destination_id)?; 
                 
                 let delay = delay_to(
                     source_device.distance_to(destination_device), 
                     delay_multiplier
                 );
 
-                Some((device_id, delay))
+                Some((*destination_id, delay))
             })
             .collect()
     }
@@ -294,8 +212,14 @@ impl ConnectionGraph {
     pub fn dijkstra(
         &self,
         source: DeviceId,
-        destination: Option<DeviceId>,
+        destination: DeviceId,
     ) -> rustworkx_core::Result<DictMap<DeviceId, f32>> {
+        let destination = if destination == BROADCAST_ID {
+            None
+        } else {
+            Some(destination)
+        };
+
         dijkstra(
             &self.graph_map,
             source,
@@ -438,13 +362,13 @@ impl<'de> Deserialize<'de> for ConnectionGraph {
 
 #[cfg(test)]
 mod tests {
-    use crate::backend::device::{Device, DeviceBuilder};
+    use crate::backend::device::{Device, DeviceBuilder, device_map_from_slice};
     use crate::backend::device::systems::{
-        PowerSystem, RXModule, TRXSystem, TRXSystemType, TXModule
+        PowerSystem, RXModule, TRXSystem, TXModule, TXModuleType
     };
     use crate::backend::mathphysics::{Megahertz, Point3D, PowerUnit};
     use crate::backend::signal::{
-        FreqToLevelMap, GREEN_SIGNAL_LEVEL, SignalLevel
+        FreqToQualityMap, GREEN_SIGNAL_QUALITY, SignalQuality
     };
     
     use super::*;
@@ -460,50 +384,43 @@ mod tests {
             .unwrap_or_else(|error| panic!("{}", error))
     }
 
-    fn round_with_precision(value: f32, precision: u8) -> f32 {
-        let coefficient = 10.0_f32.powi(precision.into());
-
-        (value * coefficient).round() / coefficient
+    fn control_trx_system(tx_area_radius: Meter) -> TRXSystem {
+        TRXSystem::new(
+            control_tx_module(tx_area_radius),
+            rx_module(),
+        )
     }
-    
+
     fn control_tx_module(radius: Meter) -> TXModule {
-        let tx_signal_level  = SignalLevel::from_area_radius(
+        let tx_signal_quality  = SignalQuality::from_area_radius(
             radius,
             Frequency::Control as Megahertz
         );
-        let tx_signal_levels = FreqToLevelMap::from([
-            (Frequency::Control, tx_signal_level)
+        let tx_signal_qualities = FreqToQualityMap::from([
+            (Frequency::Control, tx_signal_quality)
         ]);
 
-        TXModule::new(tx_signal_levels)
+        TXModule::new(TXModuleType::Strength, tx_signal_qualities)
     }
     
     fn rx_module() -> RXModule {
-        let max_rx_signal_levels = FreqToLevelMap::from([
-            (Frequency::Control, GREEN_SIGNAL_LEVEL)
+        let max_rx_signal_qualities = FreqToQualityMap::from([
+            (Frequency::Control, GREEN_SIGNAL_QUALITY)
         ]);
 
-        RXModule::new(max_rx_signal_levels)
+        RXModule::new(max_rx_signal_qualities)
     }
 
     fn drone_with_trx_system_set(position: Point3D) -> Device {
-        let trx_system = TRXSystem::new(
-            TRXSystemType::Strength,
-            control_tx_module(DRONE_TX_CONTROL_RADIUS),
-            rx_module()
-        );
-        
         DeviceBuilder::new()
             .set_real_position(position)
             .set_power_system(device_power_system())
-            .set_trx_system(trx_system)
+            .set_trx_system(control_trx_system(DRONE_TX_CONTROL_RADIUS))
             .build()
     }
 
     fn simple_mesh() -> (ConnectionGraph, Vec<DeviceId>) {
-        let frequency = Frequency::Control;
-        
-        // Network:
+        // Network topology:
         //                      D
         //                      |
         //                    (7.28)
@@ -514,76 +431,63 @@ mod tests {
         //                      |
         //                      E
         //
-        let command_center = DeviceBuilder::new()
-            .set_power_system(device_power_system())
-            .set_trx_system(
-                TRXSystem::new( 
-                    TRXSystemType::Strength,
-                    control_tx_module(DRONE_TX_CONTROL_RADIUS),
-                    rx_module()
-                )
-            )
-            .build();
+        let command_center = drone_with_trx_system_set(Point3D::default());
         let command_center_id = command_center.id();
         
         let devices = [
-            command_center,
-            drone_with_trx_system_set(Point3D::new(7.0, 0.0, 0.0)),
-            drone_with_trx_system_set(Point3D::new(14.0, 0.0, 0.0)),
-            drone_with_trx_system_set(Point3D::new(16.0, 7.0, 0.0)),
-            drone_with_trx_system_set(Point3D::new(16.0, -7.0, 0.0)),
+            command_center,                                           // A
+            drone_with_trx_system_set(Point3D::new(7.0, 0.0, 0.0)),   // B
+            drone_with_trx_system_set(Point3D::new(14.0, 0.0, 0.0)),  // C
+            drone_with_trx_system_set(Point3D::new(16.0, 7.0, 0.0)),  // D
+            drone_with_trx_system_set(Point3D::new(16.0, -7.0, 0.0)), // E
         ];
         let device_ids: Vec<DeviceId> = devices
             .iter()
             .map(|device| device.id())
             .collect();
-    
-        let device_map = IdToDeviceMap::from(devices);
+        let device_map = device_map_from_slice(&devices);
 
         let mut connections = ConnectionGraph::new(Topology::Mesh);
-        connections.update(
-            command_center_id, 
-            &device_map, 
-            frequency
-        );
+
+        connections.update(command_center_id, &device_map);
 
         (connections, device_ids)
     }
 
     fn simple_star() -> (ConnectionGraph, Vec<DeviceId>) {
-        let frequency = Frequency::Control;
-        
+        // Network topology:
+        //
+        //                 C
+        //                /
+        //             (25.0)
+        //              /
+        //  B -(25.0)- A
+        //             |
+        //           (25.0)
+        //             |
+        //             D
+        //
         let command_center = DeviceBuilder::new()
             .set_power_system(device_power_system())
-            .set_trx_system(
-                TRXSystem::new( 
-                    TRXSystemType::Strength,
-                    control_tx_module(CC_TX_CONTROL_RADIUS),
-                    rx_module()
-                )
-            )
+            .set_trx_system(control_trx_system(CC_TX_CONTROL_RADIUS))
             .build();
         let command_center_id = command_center.id();
 
         let devices = [
-            command_center,
-            drone_with_trx_system_set(Point3D::new(25.0, 0.0, 0.0)),
-            drone_with_trx_system_set(Point3D::new(0.0, 25.0, 0.0)),
-            drone_with_trx_system_set(Point3D::new(0.0, 0.0, 25.0)),
+            command_center,                                          // A
+            drone_with_trx_system_set(Point3D::new(25.0, 0.0, 0.0)), // B
+            drone_with_trx_system_set(Point3D::new(0.0, 25.0, 0.0)), // C
+            drone_with_trx_system_set(Point3D::new(0.0, 0.0, 25.0)), // D
         ];
         let device_ids: Vec<DeviceId> = devices
             .iter()
             .map(|device| device.id())
             .collect();
-
-        let device_map = IdToDeviceMap::from(devices);
+        let device_map = device_map_from_slice(&devices);
 
         let mut connections = ConnectionGraph::new(Topology::Star);
-        connections.update(
-            command_center_id, 
-            &device_map, 
-            frequency
-        );
+        
+        connections.update(command_center_id, &device_map);
 
         (connections, device_ids)
     }

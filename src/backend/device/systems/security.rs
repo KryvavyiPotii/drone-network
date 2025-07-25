@@ -5,22 +5,22 @@ use crate::backend::malware::Malware;
 
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct SecuritySystem {
-    patches: Vec<Malware>
+    patch_list: Vec<Malware>
 }
 
 impl SecuritySystem {
     #[must_use]
-    pub fn new(patches: Vec<Malware>) -> Self {
-        Self { patches }
+    pub fn new(patch_list: Vec<Malware>) -> Self {
+        Self { patch_list }
     }
 
     #[must_use]
-    pub fn patches(&self) -> &[Malware] {
-        self.patches.as_ref()
+    pub fn patch_list(&self) -> &[Malware] {
+        self.patch_list.as_ref()
     }
 
     #[must_use]
-    pub fn is_patched(&self, malware: &Malware) -> bool {
-        self.patches.contains(malware)
+    pub fn patches(&self, malware: &Malware) -> bool {
+        self.patch_list.contains(malware)
     }
 }

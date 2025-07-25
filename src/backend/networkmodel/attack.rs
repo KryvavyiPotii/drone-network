@@ -16,8 +16,6 @@ pub enum AttackError {
     TargetOutOfRange,
     #[error("TRX system failed with error `{0}`")]
     TRXSystemError(#[from] TRXSystemError),
-    #[error("Attacker device does not execute this type of attack")]
-    WrongAttackType,
 }
 
 
@@ -29,12 +27,23 @@ pub fn add_malware_signals_to_queue(
     current_time: Millisecond,
     delay_multiplier: f32,
 ) {
-    let Some(signal_level) = source_device.tx_signal_level_at(
+    let Some(signal_quality) = source_device.tx_signal_quality_at(
         destination_device, 
         Frequency::Control
     ) else {
         return;
     };
+
+    if signal_quality.is_black() {
+        return;
+    }
+    
+    let delay = delay_to(
+        source_device.distance_to(destination_device), 
+        delay_multiplier
+    );
+    let delay_map = IdToDelayMap::from([(destination_device.id(), delay)]);
+
 
     for malware in malware_list {
         let Some(malware_spread_delay) = malware.spread_delay() else {
@@ -46,18 +55,13 @@ pub fn add_malware_signals_to_queue(
             destination_device.id(),
             Data::Malware(*malware), 
             Frequency::Control, 
-            signal_level
-        );
-
-        let delay = delay_to(
-            source_device.distance_to(destination_device), 
-            delay_multiplier
+            signal_quality
         );
 
         signal_queue.add_entry(
             current_time + malware_spread_delay, 
             malware_signal, 
-            IdToDelayMap::from([(destination_device.id(), delay)])
+            delay_map.clone()
         );
     }
 }
@@ -100,8 +104,8 @@ impl AttackerDevice {
 
     /// # Errors
     ///
-    /// Will return `Err` if incorrect attack method is called, target device is
-    /// out of attacker's range or attacker's TRX system fails. 
+    /// Will return `Err` if target device is out of attacker's range or 
+    /// attacker's TRX system fails. 
     pub fn execute_attack(
         &self,
         target_device: &Device,
@@ -109,131 +113,91 @@ impl AttackerDevice {
         current_time: Millisecond,
         delay_multiplier: f32,
     ) -> Result<(), AttackError> {
+        let signals_to_send = self.generate_signals(target_device)?;
+
+        let delay = delay_to(
+            self.device.distance_to(target_device), 
+            delay_multiplier
+        );
+        let delay_map = IdToDelayMap::from([(target_device.id(), delay)]);
+
+        for signal in &signals_to_send {
+            signal_queue.add_entry(current_time, *signal, delay_map.clone());
+        };
+
+        Ok(())
+    }
+
+    fn generate_signals(
+        &self, 
+        target_device: &Device
+    ) -> Result<Vec<Signal>, AttackError> {
         match self.attack_type {
-            AttackType::ElectronicWarfare      => 
-                self.execute_electronic_warfare(
+            AttackType::ElectronicWarfare             => 
+                self.generate_noise_on_all_frequencies(target_device),
+            AttackType::GPSSpoofing(spoofed_position) => {
+                let spoofing_signal = self.generate_gps_spoofing_signal(
                     target_device, 
-                    signal_queue, 
-                    current_time,
-                    delay_multiplier
-                ),
-            AttackType::GPSSpoofing(_)         => 
-                self.spoof_gps(
+                    spoofed_position,
+                )?;
+
+                Ok(vec![spoofing_signal])
+            },
+            AttackType::MalwareDistribution(malware)  => {
+                let malware_signal = self.generate_signal_with_malware(
                     target_device, 
-                    signal_queue, 
-                    current_time,
-                    delay_multiplier
-                ),
-            AttackType::MalwareDistribution(_) =>
-                self.spread_malware(
-                    target_device, 
-                    signal_queue, 
-                    current_time,
-                    delay_multiplier
-                ),
+                    malware,
+                )?;
+
+                Ok(vec![malware_signal])
+            },
         }
     }
     
-    fn execute_electronic_warfare(
-        &self, 
-        target_device: &Device,
-        signal_queue: &mut SignalQueue,
-        current_time: Millisecond,
-        delay_multiplier: f32,
-    ) -> Result<(), AttackError> {
-        let AttackType::ElectronicWarfare = self.attack_type else {
-            return Err(AttackError::WrongAttackType);
-        };
-        
-        let mut result = Err(AttackError::TargetOutOfRange);
-        let distance = self.device.distance_to(target_device);
-
-        for frequency in self.device.tx_signal_levels().keys() {
-            let Ok(jamming_signal) = self.device.create_signal_for(
-                target_device, 
-                Data::Noise, 
-                *frequency
-            ) else {
-                continue;
-            };
-
-            let delay = delay_to(distance, delay_multiplier);
-
-            signal_queue.add_entry(
-                current_time, 
-                jamming_signal, 
-                IdToDelayMap::from([(target_device.id(), delay)])
-            );
-
-            result = Ok(());
-        }
-
-        result
-    }
-
-    fn spoof_gps(
+    fn generate_noise_on_all_frequencies(
         &self,
         target_device: &Device,
-        signal_queue: &mut SignalQueue,
-        current_time: Millisecond,
-        delay_multiplier: f32,
-    ) -> Result<(), AttackError> {
-        let AttackType::GPSSpoofing(spoofed_position) = self.attack_type else {
-            return Err(AttackError::WrongAttackType);
-        };
+    ) -> Result<Vec<Signal>, AttackError> {
+        let signals_to_send: Vec<Signal> = self.device
+            .tx_signal_quality_map()
+            .keys() 
+            .filter_map(|frequency| {
+                self.device.create_signal_for(
+                    target_device, 
+                    Data::Noise, 
+                    *frequency
+                ).ok()
+            })
+            .collect();
 
-        let Ok(spoofing_signal) = self.device.create_signal_for(
+        if signals_to_send.is_empty() {
+            return Err(AttackError::TargetOutOfRange);
+        }
+        
+        Ok(signals_to_send)
+    }
+
+    fn generate_gps_spoofing_signal(
+        &self,
+        target_device: &Device,
+        spoofed_position: Point3D,
+    ) -> Result<Signal, AttackError> {
+        self.device.create_signal_for(
             target_device, 
             Data::GPS(spoofed_position), 
             Frequency::GPS,
-        ) else {
-            return Err(AttackError::TargetOutOfRange);
-        };
-
-        let delay = delay_to(
-            self.device.distance_to(target_device), 
-            delay_multiplier
-        );
-
-        signal_queue.add_entry(
-            current_time, 
-            spoofing_signal, 
-            IdToDelayMap::from([(target_device.id(), delay)])
-        );
-
-        Ok(())
+        ).map_err(|_| AttackError::TargetOutOfRange)
     }
     
-    fn spread_malware(
+    fn generate_signal_with_malware(
         &self,
         target_device: &Device,
-        signal_queue: &mut SignalQueue,
-        current_time: Millisecond,
-        delay_multiplier: f32,
-    ) -> Result<(), AttackError> {
-        let AttackType::MalwareDistribution(malware) = self.attack_type else {
-            return Err(AttackError::WrongAttackType);
-        };
-        
-        let Ok(malware_signal) = self.device.create_signal_for(
+        malware: Malware,
+    ) -> Result<Signal, AttackError> {
+        self.device.create_signal_for(
             target_device, 
             Data::Malware(malware), 
             Frequency::Control
-        ) else {
-            return Err(AttackError::TargetOutOfRange);
-        };
-        
-        let delay = delay_to(
-            self.device.distance_to(target_device), 
-            delay_multiplier
-        );
-
-        signal_queue.add_entry(
-            current_time, 
-            malware_signal,
-            IdToDelayMap::from([(target_device.id(), delay)])
-        );
-
-        Ok(())
+        ).map_err(|_| AttackError::TargetOutOfRange)
     }
 }

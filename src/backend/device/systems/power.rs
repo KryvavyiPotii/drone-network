@@ -49,13 +49,9 @@ impl PowerSystem {
         self.power
     }
 
-    pub fn set_power(&mut self, power: PowerUnit) {
-        self.power = self.max_power.min(power);
-    }
-
     /// # Errors
     ///
-    /// Will return `Err` if device does not have power left.
+    /// Will return `Err` if the system consume all power.
     pub fn consume_power(
         &mut self, 
         power_to_consume: PowerUnit
@@ -93,24 +89,6 @@ mod tests {
         assert!(
             matches!(result, Err(PowerSystemBuildError::PowerIsGreaterThanMax))
         );
-    }
-
-    #[test]
-    fn setting_higher_power_than_max_is_impossible() {
-        let max_power = 50;
-        let power     = max_power / 2;
-
-        let mut power_system = PowerSystem::build(max_power, power)
-            .unwrap_or_else(|error| panic!("{}", error));
-
-        assert_eq!(power_system.max_power(), max_power);
-        assert_eq!(power_system.power(), power);
-
-        let too_high_power = max_power * 2;
-        
-        power_system.set_power(too_high_power);
-
-        assert_eq!(power_system.power(), max_power);
     }
 
     #[test]

@@ -8,5 +8,5 @@ pub mod player;
 pub mod renderer;
 
 
-pub const MALWARE_INFECTION_DELAY: Millisecond      = 500;
-pub const MALWARE_SPREAD_DELAY: Option<Millisecond> = Some(200);
+pub const MALWARE_INFECTION_DELAY: Millisecond      = 1000;
+pub const MALWARE_SPREAD_DELAY: Option<Millisecond> = Some(500);

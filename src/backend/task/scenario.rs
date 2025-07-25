@@ -14,37 +14,23 @@ pub struct Scenario(Vec<ScenarioEntry>);
 
 impl Scenario {
     #[must_use]
-    pub fn new() -> Self {
-        Self(Vec::new())
-    }
-
-    #[must_use]
     pub fn get_last_task(
         &self, 
         current_time: Millisecond, 
         destination_id: DeviceId
     ) -> Option<&Task> {
-        for (time, device_id, task) in self.0.iter().rev() {
-            if *time > current_time || (
-                *device_id != destination_id && *device_id != BROADCAST_ID
-            ) {
-                continue;
-            }
-            
-            return Some(task);
-        }
-
-        None
-    }
-
-    #[must_use]
-    pub fn len(&self) -> usize {
-        self.0.len()
-    }
-
-    #[must_use]
-    pub fn is_empty(&self) -> bool {
-        self.0.is_empty()
+        self.0
+            .iter()
+            .rev()
+            .find_map(|(time, device_id, task)| {
+                if *time > current_time || (
+                    *device_id != destination_id && *device_id != BROADCAST_ID
+                ) {
+                    None
+                } else {
+                    Some(task)
+                }
+            })
     }
 }
 
@@ -71,8 +57,6 @@ impl<const N: usize> From<[ScenarioEntry; N]> for Scenario {
 
 #[cfg(test)]
 mod tests {
-    use crate::backend::task::TaskType;
-    
     use super::*;
 
 
@@ -80,10 +64,7 @@ mod tests {
 
 
     fn entries() -> Vec<ScenarioEntry> {
-        let undefined_task = Task::new(
-            TaskType::Undefined,
-            None
-        );
+        let undefined_task = Task::Undefined;
 
         vec![
             (25, SOME_DEVICE_ID, undefined_task),

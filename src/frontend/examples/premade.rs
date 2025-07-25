@@ -1,13 +1,15 @@
 use crate::backend::connections::Topology;
 use crate::backend::device::{
-    Device, DeviceBuilder, IdToDeviceMap, SignalLossResponse
+    Device, DeviceBuilder, SignalLossResponse, device_map_from_slice,
 };
-use crate::backend::device::systems::TRXSystemType;
+use crate::backend::device::systems::TXModuleType;
 use crate::backend::malware::MalwareType;
 use crate::backend::mathphysics::{Frequency, Point3D};
 use crate::backend::networkmodel::NetworkModelBuilder; 
 use crate::backend::networkmodel::attack::{AttackType, AttackerDevice};
-use crate::backend::signal::{SignalLevel, GREEN_SIGNAL_LEVEL, RED_SIGNAL_LEVEL};
+use crate::backend::signal::{
+    SignalQuality, GREEN_SIGNAL_QUALITY, RED_SIGNAL_QUALITY
+};
 use crate::frontend::config::GeneralConfig;
 use crate::frontend::player::ModelPlayer;
 use crate::frontend::renderer::{
@@ -30,27 +32,27 @@ mod devsetup;
 
 
 fn derive_filename(
-    trx_system_type: TRXSystemType, 
+    tx_module_type: TXModuleType, 
     topology: Topology,
     text: &str
 ) -> String {
-    let trx_system_part = match trx_system_type {
-        TRXSystemType::Color    => "col",
-        TRXSystemType::Strength => "str",
+    let tx_module_part = match tx_module_type {
+        TXModuleType::Level    => "lvl",
+        TXModuleType::Strength => "str",
     };
     let topology_part = match topology {
         Topology::Mesh => "mesh",
         Topology::Star => "star",
     };
 
-    format!("{trx_system_part}_{text}_{topology_part}.gif")
+    format!("{tx_module_part}_{text}_{topology_part}.gif")
 }
 
 
 pub fn gps_only(general_config: &GeneralConfig) {
     let cc_tx_control_area_radius    = 300.0;
     let drone_tx_control_area_radius = 50.0;
-    let drone_gps_rx_signal_level    = RED_SIGNAL_LEVEL; 
+    let drone_gps_rx_signal_quality  = RED_SIGNAL_QUALITY; 
     let ewd_suppression_area_radius  = 50.0; 
         
     let command_center = DeviceBuilder::new()
@@ -58,7 +60,7 @@ pub fn gps_only(general_config: &GeneralConfig) {
         .set_power_system(device_power_system())
         .set_trx_system(
             cc_trx_system(
-                general_config.model_config().trx_system_type(), 
+                general_config.model_config().tx_module_type(), 
                 cc_tx_control_area_radius
             )
         )
@@ -70,9 +72,9 @@ pub fn gps_only(general_config: &GeneralConfig) {
         general_config.model_config().drone_count(),
         &default_network_position(NETWORK_ORIGIN),
         general_config.model_config().malware(),
-        general_config.model_config().trx_system_type(),
+        general_config.model_config().tx_module_type(),
         drone_tx_control_area_radius, 
-        drone_gps_rx_signal_level, 
+        drone_gps_rx_signal_quality, 
     );
     devices.insert(0, command_center);
  
@@ -81,7 +83,7 @@ pub fn gps_only(general_config: &GeneralConfig) {
         .set_power_system(device_power_system())
         .set_trx_system(
             ewd_trx_system(
-                general_config.model_config().trx_system_type(), 
+                general_config.model_config().tx_module_type(), 
                 Frequency::GPS, 
                 ewd_suppression_area_radius
             )
@@ -93,9 +95,9 @@ pub fn gps_only(general_config: &GeneralConfig) {
 
     let drone_network = NetworkModelBuilder::new()
         .set_command_center_id(command_center_id)
-        .set_device_map(IdToDeviceMap::from(devices.as_slice()))
+        .set_device_map(device_map_from_slice(devices.as_slice()))
         .set_attacker_devices(attacker_devices)
-        .set_gps(default_gps(general_config.model_config().trx_system_type()))
+        .set_gps(default_gps(general_config.model_config().tx_module_type()))
         .set_topology(general_config.model_config().topology())
         .set_scenario(attack_scenario())
         .set_delay_multiplier(general_config.model_config().delay_multiplier())
@@ -106,7 +108,7 @@ pub fn gps_only(general_config: &GeneralConfig) {
         .render_config()
         .map(|render_config| { 
             let output_filename = derive_filename(
-                general_config.model_config().trx_system_type(), 
+                general_config.model_config().tx_module_type(), 
                 general_config.model_config().topology(), 
                 "gps_only"
             );
@@ -122,7 +124,7 @@ pub fn gps_only(general_config: &GeneralConfig) {
         });
 
     let mut model_player = ModelPlayer::new(
-        general_config.model_player_config().output_directory(),
+        general_config.model_player_config().json_output_directory(),
         drone_network,
         renderer,
         general_config.model_player_config().simulation_time(),
@@ -134,14 +136,14 @@ pub fn gps_only(general_config: &GeneralConfig) {
 pub fn movement(general_config: &GeneralConfig) {
     let cc_tx_control_area_radius    = 300.0;
     let drone_tx_control_area_radius = 50.0;
-    let drone_gps_rx_signal_level    = SignalLevel::from(10_000.0); 
+    let drone_gps_rx_signal_quality  = SignalQuality::from(10_000.0); 
 
     let command_center = DeviceBuilder::new()
         .set_real_position(CC_POSITION)
         .set_power_system(device_power_system())
         .set_trx_system(
             cc_trx_system(
-                general_config.model_config().trx_system_type(), 
+                general_config.model_config().tx_module_type(), 
                 cc_tx_control_area_radius
             )
         )
@@ -153,16 +155,16 @@ pub fn movement(general_config: &GeneralConfig) {
         general_config.model_config().drone_count(),
         &default_network_position(NETWORK_ORIGIN),
         general_config.model_config().malware(),
-        general_config.model_config().trx_system_type(),
+        general_config.model_config().tx_module_type(),
         drone_tx_control_area_radius, 
-        drone_gps_rx_signal_level, 
+        drone_gps_rx_signal_quality, 
     );
     devices.insert(0, command_center);
     
     let drone_network = NetworkModelBuilder::new()
         .set_command_center_id(command_center_id)
-        .set_device_map(IdToDeviceMap::from(devices.as_slice()))
-        .set_gps(default_gps(general_config.model_config().trx_system_type()))
+        .set_device_map(device_map_from_slice(devices.as_slice()))
+        .set_gps(default_gps(general_config.model_config().tx_module_type()))
         .set_topology(general_config.model_config().topology())
         .set_scenario(reposition_scenario())
         .set_delay_multiplier(general_config.model_config().delay_multiplier())
@@ -173,7 +175,7 @@ pub fn movement(general_config: &GeneralConfig) {
         .render_config()
         .map(|render_config| { 
             let output_filename = derive_filename(
-                general_config.model_config().trx_system_type(),
+                general_config.model_config().tx_module_type(),
                 general_config.model_config().topology(), 
                 "movement"
             );
@@ -189,7 +191,7 @@ pub fn movement(general_config: &GeneralConfig) {
         });
 
     let mut model_player = ModelPlayer::new(
-        general_config.model_player_config().output_directory(),
+        general_config.model_player_config().json_output_directory(),
         drone_network,
         renderer,
         general_config.model_player_config().simulation_time(),
@@ -201,7 +203,7 @@ pub fn movement(general_config: &GeneralConfig) {
 pub fn gps_spoofing(general_config: &GeneralConfig) {
     let cc_tx_control_area_radius    = 300.0;
     let drone_tx_control_area_radius = 50.0;
-    let drone_gps_rx_signal_level    = RED_SIGNAL_LEVEL; 
+    let drone_gps_rx_signal_quality  = RED_SIGNAL_QUALITY; 
     let gps_spoofing_area_radius     = 100.0; 
         
     let command_center = DeviceBuilder::new()
@@ -209,7 +211,7 @@ pub fn gps_spoofing(general_config: &GeneralConfig) {
         .set_power_system(device_power_system())
         .set_trx_system(
             cc_trx_system(
-                general_config.model_config().trx_system_type(), 
+                general_config.model_config().tx_module_type(), 
                 cc_tx_control_area_radius
             )
         )
@@ -221,9 +223,9 @@ pub fn gps_spoofing(general_config: &GeneralConfig) {
         general_config.model_config().drone_count(),
         &default_network_position(NETWORK_ORIGIN),
         general_config.model_config().malware(),
-        general_config.model_config().trx_system_type(),
+        general_config.model_config().tx_module_type(),
         drone_tx_control_area_radius, 
-        drone_gps_rx_signal_level, 
+        drone_gps_rx_signal_quality, 
     );
     devices.insert(0, command_center);
 
@@ -232,7 +234,7 @@ pub fn gps_spoofing(general_config: &GeneralConfig) {
         .set_power_system(device_power_system())
         .set_trx_system(
             ewd_trx_system(
-                general_config.model_config().trx_system_type(), 
+                general_config.model_config().tx_module_type(), 
                 Frequency::GPS, 
                 gps_spoofing_area_radius
             )
@@ -245,9 +247,9 @@ pub fn gps_spoofing(general_config: &GeneralConfig) {
 
     let drone_network = NetworkModelBuilder::new()
         .set_command_center_id(command_center_id)
-        .set_device_map(IdToDeviceMap::from(devices.as_slice()))
+        .set_device_map(device_map_from_slice(devices.as_slice()))
         .set_attacker_devices(attacker_devices)
-        .set_gps(default_gps(general_config.model_config().trx_system_type()))
+        .set_gps(default_gps(general_config.model_config().tx_module_type()))
         .set_topology(general_config.model_config().topology())
         .set_scenario(attack_scenario())
         .set_delay_multiplier(general_config.model_config().delay_multiplier())
@@ -258,7 +260,7 @@ pub fn gps_spoofing(general_config: &GeneralConfig) {
         .render_config()
         .map(|render_config| { 
             let output_filename = derive_filename(
-                general_config.model_config().trx_system_type(),
+                general_config.model_config().tx_module_type(),
                 general_config.model_config().topology(), 
                 "gps_spoofing"
             );
@@ -280,7 +282,7 @@ pub fn gps_spoofing(general_config: &GeneralConfig) {
         });
 
     let mut model_player = ModelPlayer::new(
-        general_config.model_player_config().output_directory(),
+        general_config.model_player_config().json_output_directory(),
         drone_network,
         renderer,
         general_config.model_player_config().simulation_time(),
@@ -292,7 +294,7 @@ pub fn gps_spoofing(general_config: &GeneralConfig) {
 pub fn malware_infection(general_config: &GeneralConfig) {
     let cc_tx_control_area_radius    = 200.0;
     let drone_tx_control_area_radius = 15.0;
-    let drone_gps_rx_signal_level    = GREEN_SIGNAL_LEVEL; 
+    let drone_gps_rx_signal_quality  = GREEN_SIGNAL_QUALITY; 
     let attacker_tx_area_radius      = 50.0;
     let malware = general_config.model_config().malware()
         .expect("Missing malware type");
@@ -302,7 +304,7 @@ pub fn malware_infection(general_config: &GeneralConfig) {
         .set_power_system(device_power_system())
         .set_trx_system(
             cc_trx_system(
-                general_config.model_config().trx_system_type(), 
+                general_config.model_config().tx_module_type(), 
                 cc_tx_control_area_radius
             )
         )
@@ -314,9 +316,9 @@ pub fn malware_infection(general_config: &GeneralConfig) {
         general_config.model_config().drone_count(),
         &default_network_position(Point3D::new(50.0, 50.0, 0.0)),
         general_config.model_config().malware(),
-        general_config.model_config().trx_system_type(),
+        general_config.model_config().tx_module_type(),
         drone_tx_control_area_radius, 
-        drone_gps_rx_signal_level, 
+        drone_gps_rx_signal_quality, 
     );
     devices.insert(0, command_center);
     
@@ -325,7 +327,7 @@ pub fn malware_infection(general_config: &GeneralConfig) {
         .set_power_system(device_power_system())
         .set_trx_system(
             ewd_trx_system(
-                general_config.model_config().trx_system_type(),
+                general_config.model_config().tx_module_type(),
                 Frequency::Control,
                 attacker_tx_area_radius
             )
@@ -340,8 +342,8 @@ pub fn malware_infection(general_config: &GeneralConfig) {
 
     let drone_network_builder = NetworkModelBuilder::new()
         .set_command_center_id(command_center_id)
-        .set_device_map(IdToDeviceMap::from(devices.as_slice()))
-        .set_gps(default_gps(general_config.model_config().trx_system_type()))
+        .set_device_map(device_map_from_slice(devices.as_slice()))
+        .set_gps(default_gps(general_config.model_config().tx_module_type()))
         .set_topology(general_config.model_config().topology())
         .set_delay_multiplier(general_config.model_config().delay_multiplier());
     
@@ -366,7 +368,7 @@ pub fn malware_infection(general_config: &GeneralConfig) {
                 MalwareType::Indicator  => "mal_indicator",
             };
             let output_filename = derive_filename(
-                general_config.model_config().trx_system_type(),
+                general_config.model_config().tx_module_type(),
                 general_config.model_config().topology(), 
                 text,
             );
@@ -392,7 +394,7 @@ pub fn malware_infection(general_config: &GeneralConfig) {
         });
 
     let mut model_player = ModelPlayer::new(
-        general_config.model_player_config().output_directory(),
+        general_config.model_player_config().json_output_directory(),
         drone_network,
         renderer,
         general_config.model_player_config().simulation_time(),
@@ -423,7 +425,7 @@ pub fn malware_propagation(
         .render_config()
         .map(|render_config| { 
             let output_filename = derive_filename(
-                general_config.model_config().trx_system_type(),
+                general_config.model_config().tx_module_type(),
                 general_config.model_config().topology(), 
                 "mal_indicator",
             );
@@ -446,7 +448,7 @@ pub fn malware_propagation(
         });
 
     let mut model_player = ModelPlayer::new(
-        general_config.model_player_config().output_directory(),
+        general_config.model_player_config().json_output_directory(),
         drone_network,
         renderer,
         general_config.model_player_config().simulation_time(),
@@ -458,7 +460,7 @@ pub fn malware_propagation(
 pub fn signal_loss_response(general_config: &GeneralConfig) {
     let cc_tx_control_area_radius    = 200.0;
     let drone_tx_control_area_radius = 50.0;
-    let drone_gps_rx_signal_level    = GREEN_SIGNAL_LEVEL; 
+    let drone_gps_rx_signal_quality  = GREEN_SIGNAL_QUALITY; 
     let control_ewd_suppression_area_radius = 25.0;
     let command_center_position      = Point3D::new(100.0, 50.0, 0.0);
 
@@ -467,7 +469,7 @@ pub fn signal_loss_response(general_config: &GeneralConfig) {
         .set_power_system(device_power_system())
         .set_trx_system(
             cc_trx_system(
-                general_config.model_config().trx_system_type(), 
+                general_config.model_config().tx_module_type(), 
                 cc_tx_control_area_radius
             )
         )
@@ -481,9 +483,9 @@ pub fn signal_loss_response(general_config: &GeneralConfig) {
         .set_movement_system(device_movement_system())
         .set_trx_system(
             drone_trx_system(
-                general_config.model_config().trx_system_type(), 
+                general_config.model_config().tx_module_type(), 
                 drone_tx_control_area_radius, 
-                drone_gps_rx_signal_level
+                drone_gps_rx_signal_quality
             )
         );
 
@@ -522,7 +524,7 @@ pub fn signal_loss_response(general_config: &GeneralConfig) {
         .set_power_system(device_power_system())
         .set_trx_system(
             ewd_trx_system(
-                general_config.model_config().trx_system_type(),
+                general_config.model_config().tx_module_type(),
                 Frequency::Control,
                 control_ewd_suppression_area_radius
             )
@@ -534,9 +536,9 @@ pub fn signal_loss_response(general_config: &GeneralConfig) {
     
     let drone_network = NetworkModelBuilder::new()
         .set_command_center_id(command_center_id)
-        .set_device_map(IdToDeviceMap::from(devices.as_slice()))
+        .set_device_map(device_map_from_slice(devices.as_slice()))
         .set_attacker_devices(attacker_devices)
-        .set_gps(default_gps(general_config.model_config().trx_system_type()))
+        .set_gps(default_gps(general_config.model_config().tx_module_type()))
         .set_topology(general_config.model_config().topology())
         .set_scenario(attack_scenario())
         .set_delay_multiplier(general_config.model_config().delay_multiplier())
@@ -547,7 +549,7 @@ pub fn signal_loss_response(general_config: &GeneralConfig) {
         .render_config()
         .map(|render_config| { 
             let output_filename = derive_filename(
-                general_config.model_config().trx_system_type(),
+                general_config.model_config().tx_module_type(),
                 general_config.model_config().topology(),
                 "signal_loss_response"
             ); 
@@ -568,7 +570,7 @@ pub fn signal_loss_response(general_config: &GeneralConfig) {
         });
     
     let mut model_player = ModelPlayer::new(
-        general_config.model_player_config().output_directory(),
+        general_config.model_player_config().json_output_directory(),
         drone_network,
         renderer,
         general_config.model_player_config().simulation_time(),

@@ -31,7 +31,7 @@ impl GPS {
         current_time: Millisecond,
         delay_multiplier: f32,
     ) {
-        for device in device_map.devices() {
+        for device in device_map.values() {
             let Ok(gps_signal) = self.0.create_signal_for(
                 device,
                 Data::GPS(*device.position()), 

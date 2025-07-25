@@ -19,28 +19,29 @@ It is a reimagined and enhanced version of [drone-network-proto](https://github.
 $ drone_network -h
 Models drone networks.
 
-Usage: drone_network-x64-linux [OPTIONS] --trx <trx system type> --topology <network topology>
+Usage: drone_network-x64-linux [OPTIONS]
 
 Options:
   -x, --experiment <experiment title>
           Choose experiment title [possible values: custom, gpsewd, gpsspoof, malware,
 move, signalloss]
-      --im <network model path>
-          Deserialize network model from `.json` file and use it
-      --trx <trx system type>
-          Choose device TRX system type [possible values: color, strength]
+      --tx <tx module type>
+          Choose TX system type [possible values: level, strength]
   -t, --topology <network topology>
           Choose network topology [possible values: mesh, star]
   -n <drone count>
           Set the number of drones in the network (non-negative integer) [default: 100]
   -d, --delay-multiplier <delay multiplier>
           Set signal transmission delay multiplier (non-negative float) [default: 0.0]
-      --display-propagation
-          Show malware propagation as well ("malware" experiment)
   -i, --infection <malware type>
           Choose infection type ("malware" experiment) [possible values: dos, indicator]
-      --od <output directory path>
-          Serialize network model data on each iteration to specified directory
+      --display-propagation
+          Show malware propagation as well ("malware" experiment)
+      --ji <json input path>
+          Deserialize network model from `.json` file and use it ("custom" experiment)
+      --jo <json directory output path>
+          Serialize network model data on each iteration to `.json` files in specified
+directory
       --no-plot
           Do not render a GIF plot
   -c, --caption <plot caption>

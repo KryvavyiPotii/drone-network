@@ -270,11 +270,7 @@ impl NetworkModel {
     }
     
     fn update_connections_graph(&mut self) {
-        self.connections.update(
-            self.command_device_id, 
-            &self.device_map,
-            Frequency::Control,
-        );
+        self.connections.update(self.command_device_id, &self.device_map);
     }
 
     fn add_scenario_signals_to_queue(&mut self) {
@@ -285,7 +281,7 @@ impl NetworkModel {
         };
 
         for (device_id, device) in &self.device_map {
-            if *device_id == command_device.id() {
+            if *device_id == self.command_device_id {
                 continue;
             }
 

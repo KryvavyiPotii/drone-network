@@ -1,7 +1,7 @@
 use std::path::{Path, PathBuf};
 
 use crate::backend::connections::Topology;
-use crate::backend::device::systems::TRXSystemType;
+use crate::backend::device::systems::TXModuleType;
 use crate::backend::malware::Malware;
 use crate::backend::mathphysics::Millisecond;
 
@@ -60,7 +60,7 @@ impl GeneralConfig {
 
 #[derive(Default)]
 pub struct ModelConfig {
-    trx_system_type: TRXSystemType,
+    tx_module_type: TXModuleType,
     topology: Topology,
     drone_count: usize,
     delay_multiplier: f32,
@@ -70,14 +70,14 @@ pub struct ModelConfig {
 impl ModelConfig {
     #[must_use]
     pub fn new(
-        trx_system_type: TRXSystemType,
+        tx_module_type: TXModuleType,
         topology: Topology,
         drone_count: usize,
         delay_multiplier: f32,
         malware: Option<Malware>,
     ) -> Self {
         Self {
-            trx_system_type,
+            tx_module_type,
             topology,
             drone_count,
             delay_multiplier,
@@ -86,8 +86,8 @@ impl ModelConfig {
     }
 
     #[must_use]
-    pub fn trx_system_type(&self) -> TRXSystemType {
-        self.trx_system_type
+    pub fn tx_module_type(&self) -> TXModuleType {
+        self.tx_module_type
     }
     
     #[must_use]
@@ -113,7 +113,7 @@ impl ModelConfig {
 
 
 pub struct ModelPlayerConfig {
-    output_directory: Option<PathBuf>,
+    json_output_directory: Option<PathBuf>,
     render_config: Option<RenderConfig>,
     simulation_time: Millisecond,
 }
@@ -121,20 +121,20 @@ pub struct ModelPlayerConfig {
 impl ModelPlayerConfig {
     #[must_use]
     pub fn new(
-        output_directory: Option<&Path>,
+        json_output_directory: Option<&Path>,
         render_config: Option<RenderConfig>,
         simulation_time: Millisecond,
     ) -> Self {
         Self {
-            output_directory: output_directory.map(Path::to_path_buf),
+            json_output_directory: json_output_directory.map(Path::to_path_buf),
             render_config,
             simulation_time,
         }
     }
     
     #[must_use]
-    pub fn output_directory(&self) -> Option<&Path> {
-        self.output_directory.as_deref()
+    pub fn json_output_directory(&self) -> Option<&Path> {
+        self.json_output_directory.as_deref()
     }
 
     #[must_use]

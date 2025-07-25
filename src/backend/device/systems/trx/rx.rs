@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::backend::mathphysics::{Frequency, Millisecond};
-use crate::backend::signal::{Data, FreqToLevelMap, Signal, SignalLevel};
+use crate::backend::signal::{Data, FreqToQualityMap, Signal, SignalQuality};
 
 
 // The first element - time at which a signal was received.
@@ -16,18 +16,18 @@ const RECEIVE_RED_SIGNAL: f64    = 0.50;
 const RECEIVE_BLACK_SIGNAL: f64  = 0.10;
 
 
-fn signal_is_received(signal_level: SignalLevel) -> bool {
+fn signal_reached_rx(signal_quality: SignalQuality) -> bool {
     rand::random_bool(
-        signal_receive_probability(signal_level)
+        signal_reach_rx_probability(signal_quality)
     )
 }
 
-fn signal_receive_probability(signal_level: SignalLevel) -> f64 {
-    if signal_level.is_green() {
+fn signal_reach_rx_probability(signal_quality: SignalQuality) -> f64 {
+    if signal_quality.is_green() {
         RECEIVE_GREEN_SIGNAL
-    } else if signal_level.is_yellow() {
+    } else if signal_quality.is_yellow() {
         RECEIVE_YELLOW_SIGNAL
-    } else if signal_level.is_red() {
+    } else if signal_quality.is_red() {
         RECEIVE_RED_SIGNAL
     } else {
         RECEIVE_BLACK_SIGNAL
@@ -51,15 +51,15 @@ pub enum RXError {
 // By default we create a non-functioning RXModule.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct RXModule {
-    max_signal_levels: FreqToLevelMap,
+    max_signal_quality_map: FreqToQualityMap,
     received_signals: Vec<ReceivedSignal>,
 }
 
 impl RXModule {
     #[must_use]
-    pub fn new(max_signal_levels: FreqToLevelMap) -> Self {
+    pub fn new(max_signal_quality_map: FreqToQualityMap) -> Self {
         Self { 
-            max_signal_levels,
+            max_signal_quality_map,
             received_signals: Vec::new() 
         }
     }
@@ -92,33 +92,34 @@ impl RXModule {
     /// # Errors
     ///
     /// Will return `Err` if RX module does not listen on received signal's 
-    /// frequency, received signal's level is lower than current signal's or it 
-    /// is higher than maximum signal level on respective frequency.
+    /// frequency, received signal's quality is lower than current signal's or 
+    /// it is higher than maximum signal quality on respective frequency.
     pub fn receive_signal(
         &mut self, 
         signal: Signal,
         time: Millisecond
     ) -> Result<(), RXError> {
-        let max_signal_level = *self.max_signal_level_on(signal.frequency())?;
+        if !signal_reached_rx(*signal.quality()) {
+            return Err(RXError::SignalNotReceived);
+        }
+
+        let max_signal_quality = *self.max_signal_quality_on(
+            signal.frequency()
+        )?;
 
         if let Some((_, current_signal)) = self.received_signal_on(
             &signal.frequency()
         ) {
-            if current_signal.level() > signal.level() {
+            if current_signal.quality() > signal.quality() {
                 return Err(RXError::SignalTooWeak);
             }
         }
 
-        if !signal_is_received(*signal.level()) {
-            return Err(RXError::SignalNotReceived);
-        }
-
         self.remove_current_received_signal_on(signal.frequency());
 
-        // Signals which level is higher than RX module's max, are viewed as 
-        // noise.
-        if *signal.level() > max_signal_level {
+        if *signal.quality() > max_signal_quality {
             self.received_signals.push((time, signal.to_noise()));
+
             return Err(RXError::NoiseReceived);
         }
 
@@ -127,21 +128,17 @@ impl RXModule {
         Ok(())
     }
 
-    fn max_signal_level_on(
+    fn max_signal_quality_on(
         &self, 
         frequency: Frequency, 
-    ) -> Result<&SignalLevel, RXError> {
-        let Some(max_signal_level) = self.max_signal_levels.get(
+    ) -> Result<&SignalQuality, RXError> {
+        let Some(max_signal_quality) = self.max_signal_quality_map.get(
             &frequency
         ) else {
             return Err(RXError::NotListeningOnFrequency);
         };
-        
-        if max_signal_level.is_black() {
-            return Err(RXError::NotListeningOnFrequency);
-        }
 
-        Ok(max_signal_level)
+        Ok(max_signal_quality)
     }
 
     fn remove_current_received_signal_on(&mut self, frequency: Frequency) {
