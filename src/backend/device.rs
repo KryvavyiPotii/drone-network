@@ -1,4 +1,4 @@
-use log::info;
+use log::trace;
 use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
@@ -283,7 +283,7 @@ impl Device {
             signal_quality,
         );
 
-        self.info_created_signal_for(receiver.id());
+        self.trace_created_signal_for(receiver.id());
 
         Ok(signal)
     }
@@ -311,7 +311,7 @@ impl Device {
         self.trx_system
             .receive_signal(signal, time)
             .inspect(|()| 
-                info!(
+                trace!(
                     "Current time: {}, Id: {}, Received signal from {}",
                     self.current_time,
                     self.id,
@@ -340,7 +340,7 @@ impl Device {
     /// Will return `Err` if all power is consumed or the movement system is
     /// disabled.
     pub fn update(&mut self) -> Result<(), DeviceError> {
-        self.info_control_signal_quality();
+        self.trace_control_signal_quality();
 
         self.try_consume_power(PASSIVE_POWER_CONSUMPTION)?;
         self.handle_malware_infections();
@@ -386,7 +386,7 @@ impl Device {
             && !self.security_system.patches(malware) 
         {
             self.infection_map.insert(*malware, self.current_time);
-            self.info_infected(malware);
+            self.trace_infected(malware);
         }
     }
    
@@ -474,12 +474,12 @@ impl Device {
         match self.task {
             Task::Attack(destination) 
                 if self.at_destination(&destination) => { 
-                self.info_reached_destination();
+                self.trace_reached_destination();
                 self.selfdestruction();
             },
             Task::Reposition(destination) 
                 if self.at_destination(&destination) => { 
-                self.info_reached_destination();
+                self.trace_reached_destination();
                 self.task = Task::Undefined;
             },
             _ => (),
@@ -523,8 +523,8 @@ impl Device {
     }
 
 
-    fn info_control_signal_quality(&self) {
-        info!(
+    fn trace_control_signal_quality(&self) {
+        trace!(
             "Current time: {}, Id: {}, Control signal quality: {}",
             self.current_time,
             self.id,
@@ -534,8 +534,8 @@ impl Device {
         );
     }
 
-    fn info_created_signal_for(&self, receiver_id: DeviceId) {
-        info!(
+    fn trace_created_signal_for(&self, receiver_id: DeviceId) {
+        trace!(
             "Current time: {}, Id: {}, Created signal for {}",
             self.current_time,
             self.id,
@@ -543,8 +543,8 @@ impl Device {
         );
     }
 
-    fn info_infected(&self, malware: &Malware) {
-        info!(
+    fn trace_infected(&self, malware: &Malware) {
+        trace!(
             "Current time: {}, Id: {}, Device was infected with {}",
             self.current_time,
             self.id,
@@ -552,8 +552,8 @@ impl Device {
         );
     }
 
-    fn info_reached_destination(&self) {
-        info!(
+    fn trace_reached_destination(&self) {
+        trace!(
             "Current time: {}, Id: {}, Reached destination",
             self.current_time,
             self.id,

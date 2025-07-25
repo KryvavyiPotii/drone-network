@@ -9,7 +9,7 @@ use args::{
     handle_arguments, ARG_DELAY_MULTIPLIER, ARG_DISPLAY_MALWARE_PROPAGATION, 
     ARG_DRONE_COUNT, ARG_EXPERIMENT_TITLE, ARG_JSON_INPUT, ARG_MALWARE_TYPE, 
     ARG_NO_PLOT, ARG_NETWORK_TOPOLOGY, ARG_JSON_OUTPUT, ARG_PLOT_CAPTION, 
-    ARG_PLOT_HEIGHT, ARG_PLOT_WIDTH, ARG_SIM_TIME, ARG_TX_MODULE, 
+    ARG_PLOT_HEIGHT, ARG_PLOT_WIDTH, ARG_SIM_TIME, ARG_TX_MODULE, ARG_VERBOSE,
     DEFAULT_DELAY_MULTIPLIER, DEFAULT_DRONE_COUNT, DEFAULT_PLOT_CAPTION, 
     DEFAULT_PLOT_HEIGHT, DEFAULT_PLOT_WIDTH, DEFAULT_SIM_TIME, EXP_CUSTOM, 
     EXP_GPS_ONLY, EXP_GPS_SPOOFING, EXP_MALWARE_INFECTION, EXP_MOVEMENT, 
@@ -40,6 +40,7 @@ pub fn cli() {
             arg_plot_width(),
             arg_plot_height(),
             arg_simulation_time(),
+            arg_verbose(),
         ])
         .arg_required_else_help(true)
         .get_matches();
@@ -208,4 +209,12 @@ fn arg_simulation_time() -> Arg {
         .value_parser(value_parser!(Millisecond))
         .default_value(DEFAULT_SIM_TIME)
         .help("Set the simulation time (in millis)")
+}
+
+fn arg_verbose() -> Arg {
+    Arg::new(ARG_VERBOSE)
+        .short('v')
+        .long("verbose")
+        .action(ArgAction::SetTrue)
+        .help("Show full log output")
 }

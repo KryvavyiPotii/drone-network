@@ -1,6 +1,9 @@
+use std::io::Write;
 use std::path::{Path, PathBuf};
 
 use clap::ArgMatches;
+use env_logger::{Builder, Target};
+use log::LevelFilter;
 
 use crate::backend::connections::Topology;
 use crate::backend::device::systems::TXModuleType;
@@ -31,6 +34,7 @@ pub const ARG_PLOT_HEIGHT: &str      = "plot height";
 pub const ARG_PLOT_WIDTH: &str       = "plot width";
 pub const ARG_SIM_TIME: &str         = "simulation time";
 pub const ARG_TX_MODULE: &str        = "tx module type";
+pub const ARG_VERBOSE: &str          = "verbose logs";
 
 pub const EXP_CUSTOM: &str            = "custom";
 pub const EXP_GPS_ONLY: &str          = "gpsewd";
@@ -62,7 +66,7 @@ pub fn handle_arguments(matches: &ArgMatches) {
     ) else {
         return;
     };
- 
+     
     let example = match experiment_title.as_str() {
         EXP_CUSTOM            => {
             let Some(model_path) = input_model_path(matches) else {
@@ -83,6 +87,8 @@ pub fn handle_arguments(matches: &ArgMatches) {
         Example::Custom(_) => ModelConfig::default(),
         _                  => model_config(matches),
     };
+    
+    configure_logging(verbosity_level(matches));
     
     example.execute(
         &GeneralConfig::new(
@@ -226,4 +232,28 @@ fn display_malware_propagation(matches: &ArgMatches) -> bool {
     *matches
         .get_one::<bool>(ARG_DISPLAY_MALWARE_PROPAGATION)
         .unwrap()
+}
+
+fn verbosity_level(matches: &ArgMatches) -> LevelFilter {
+    if *matches.get_one::<bool>(ARG_VERBOSE).unwrap() {
+        LevelFilter::Trace
+    } else {
+        LevelFilter::Info
+    }
+}
+
+fn configure_logging(filter: LevelFilter) {
+    Builder::new()
+        .format(|buf, record| 
+            writeln!(
+                buf,
+                "{} {} - {}", 
+                chrono::Local::now().format("%Y-%m-%d %H:%M:%S"),
+                record.level(), 
+                record.args()
+            )
+        )
+        .filter(None, filter)
+        .target(Target::Stdout)
+        .init();
 }

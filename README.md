@@ -52,6 +52,8 @@ directory
           Set the plot height (in pixels) [default: 300]
       --time <simulation time>
           Set the simulation time (in millis) [default: 15000]
+  -v, --verbose
+          Show full log output
   -h, --help
           Print help
   -V, --version
