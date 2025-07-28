@@ -49,11 +49,11 @@ fn derive_filename(
 }
 
 
-pub fn gps_only(general_config: &GeneralConfig) {
+pub fn ewd(general_config: &GeneralConfig, ew_frequency: Frequency) {
     let cc_tx_control_area_radius    = 300.0;
     let drone_tx_control_area_radius = 50.0;
     let drone_gps_rx_signal_quality  = RED_SIGNAL_QUALITY; 
-    let ewd_suppression_area_radius  = 50.0; 
+    let ewd_suppression_area_radius  = 100.0; 
         
     let command_center = DeviceBuilder::new()
         .set_real_position(CC_POSITION)
@@ -73,24 +73,25 @@ pub fn gps_only(general_config: &GeneralConfig) {
         &default_network_position(NETWORK_ORIGIN),
         general_config.model_config().malware(),
         general_config.model_config().tx_module_type(),
+        general_config.model_config().signal_loss_response(),
         drone_tx_control_area_radius, 
         drone_gps_rx_signal_quality, 
     );
     devices.insert(0, command_center);
  
-    let ewd_gps = DeviceBuilder::new()
+    let ewd = DeviceBuilder::new()
         .set_real_position(Point3D::new(0.0, 5.0, 2.0))
         .set_power_system(device_power_system())
         .set_trx_system(
             ewd_trx_system(
                 general_config.model_config().tx_module_type(), 
-                Frequency::GPS, 
+                ew_frequency, 
                 ewd_suppression_area_radius
             )
         )
         .build();
     let attacker_devices = vec![
-        AttackerDevice::new(ewd_gps, AttackType::ElectronicWarfare)
+        AttackerDevice::new(ewd, AttackType::ElectronicWarfare)
     ];
 
     let drone_network = NetworkModelBuilder::new()
@@ -110,7 +111,7 @@ pub fn gps_only(general_config: &GeneralConfig) {
             let output_filename = derive_filename(
                 general_config.model_config().tx_module_type(), 
                 general_config.model_config().topology(), 
-                "gps_only"
+                "ewd"
             );
             
             PlottersRenderer::new(
@@ -156,6 +157,7 @@ pub fn movement(general_config: &GeneralConfig) {
         &default_network_position(NETWORK_ORIGIN),
         general_config.model_config().malware(),
         general_config.model_config().tx_module_type(),
+        general_config.model_config().signal_loss_response(),
         drone_tx_control_area_radius, 
         drone_gps_rx_signal_quality, 
     );
@@ -224,12 +226,13 @@ pub fn gps_spoofing(general_config: &GeneralConfig) {
         &default_network_position(NETWORK_ORIGIN),
         general_config.model_config().malware(),
         general_config.model_config().tx_module_type(),
+        general_config.model_config().signal_loss_response(),
         drone_tx_control_area_radius, 
         drone_gps_rx_signal_quality, 
     );
     devices.insert(0, command_center);
 
-    let ewd_gps = DeviceBuilder::new()
+    let spoofer = DeviceBuilder::new()
         .set_real_position(Point3D::new(0.0, 5.0, 2.0))
         .set_power_system(device_power_system())
         .set_trx_system(
@@ -242,7 +245,7 @@ pub fn gps_spoofing(general_config: &GeneralConfig) {
         .build();
     let spoofed_position = Point3D::new(-200.0, -100.0, -200.0);
     let attacker_devices = vec![
-        AttackerDevice::new(ewd_gps, AttackType::GPSSpoofing(spoofed_position))
+        AttackerDevice::new(spoofer, AttackType::GPSSpoofing(spoofed_position))
     ];
 
     let drone_network = NetworkModelBuilder::new()
@@ -317,6 +320,7 @@ pub fn malware_infection(general_config: &GeneralConfig) {
         &default_network_position(Point3D::new(50.0, 50.0, 0.0)),
         general_config.model_config().malware(),
         general_config.model_config().tx_module_type(),
+        general_config.model_config().signal_loss_response(),
         drone_tx_control_area_radius, 
         drone_gps_rx_signal_quality, 
     );

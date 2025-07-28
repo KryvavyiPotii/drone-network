@@ -23,16 +23,19 @@ Usage: drone_network-x64-linux [OPTIONS]
 
 Options:
   -x, --experiment <experiment title>
-          Choose experiment title [possible values: custom, gpsewd, gpsspoof, malware,
-move, signalloss]
+          Choose experiment title [possible values: custom, ewd, gpsspoof, malware, move, signalloss]
       --tx <tx module type>
           Choose TX system type [possible values: level, strength]
+      --slr <control signal loss response>
+          Choose control signal loss response (except "signalloss" experiment) [default: ignore] [possible values: ascend, ignore, hover, rth, shutdown]
   -t, --topology <network topology>
           Choose network topology [possible values: mesh, star]
   -n <drone count>
           Set the number of drones in the network (non-negative integer) [default: 100]
   -d, --delay-multiplier <delay multiplier>
           Set signal transmission delay multiplier (non-negative float) [default: 0.0]
+  -f, --ew-freq <electronic warfare frequency>
+          Choose EW frequency ("ewd" experiment) [possible values: control, gps]
   -i, --infection <malware type>
           Choose infection type ("malware" experiment) [possible values: dos, indicator]
       --display-propagation
@@ -40,8 +43,7 @@ move, signalloss]
       --ji <json input path>
           Deserialize network model from `.json` file and use it ("custom" experiment)
       --jo <json directory output path>
-          Serialize network model data on each iteration to `.json` files in specified
-directory
+          Serialize network model data on each iteration to `.json` files in specified directory
       --no-plot
           Do not render a GIF plot
   -c, --caption <plot caption>

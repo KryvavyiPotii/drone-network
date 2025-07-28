@@ -7,14 +7,15 @@ use crate::frontend::renderer::Pixel;
 
 use args::{
     handle_arguments, ARG_DELAY_MULTIPLIER, ARG_DISPLAY_MALWARE_PROPAGATION, 
-    ARG_DRONE_COUNT, ARG_EXPERIMENT_TITLE, ARG_JSON_INPUT, ARG_MALWARE_TYPE, 
-    ARG_NO_PLOT, ARG_NETWORK_TOPOLOGY, ARG_JSON_OUTPUT, ARG_PLOT_CAPTION, 
-    ARG_PLOT_HEIGHT, ARG_PLOT_WIDTH, ARG_SIM_TIME, ARG_TX_MODULE, ARG_VERBOSE,
-    DEFAULT_DELAY_MULTIPLIER, DEFAULT_DRONE_COUNT, DEFAULT_PLOT_CAPTION, 
-    DEFAULT_PLOT_HEIGHT, DEFAULT_PLOT_WIDTH, DEFAULT_SIM_TIME, EXP_CUSTOM, 
-    EXP_GPS_ONLY, EXP_GPS_SPOOFING, EXP_MALWARE_INFECTION, EXP_MOVEMENT, 
-    EXP_SIGNAL_LOSS, MAL_DOS, MAL_INDICATOR, TOPOLOGY_MESH, TOPOLOGY_STAR, 
-    TX_LEVEL, TX_STRENGTH
+    ARG_DRONE_COUNT, ARG_EXPERIMENT_TITLE, ARG_EW_FREQUENCY, ARG_JSON_INPUT, 
+    ARG_MALWARE_TYPE, ARG_NO_PLOT, ARG_NETWORK_TOPOLOGY, ARG_JSON_OUTPUT, 
+    ARG_PLOT_CAPTION, ARG_PLOT_HEIGHT, ARG_PLOT_WIDTH, ARG_SIG_LOSS_RESP, 
+    ARG_SIM_TIME, ARG_TX_MODULE, ARG_VERBOSE, DEFAULT_DELAY_MULTIPLIER, 
+    DEFAULT_DRONE_COUNT, DEFAULT_PLOT_CAPTION, DEFAULT_PLOT_HEIGHT, 
+    DEFAULT_PLOT_WIDTH, DEFAULT_SIM_TIME, EXP_CUSTOM, EXP_EWD, EXP_GPS_SPOOFING, 
+    EXP_MALWARE_INFECTION, EXP_MOVEMENT, EXP_SIGNAL_LOSS, EW_CONTROL, EW_GPS, 
+    MAL_DOS, MAL_INDICATOR, SLR_ASCEND, SLR_IGNORE, SLR_HOVER, SLR_RTH, 
+    SLR_SHUTDOWN, TOPOLOGY_MESH, TOPOLOGY_STAR, TX_LEVEL, TX_STRENGTH
 };
 
 
@@ -23,14 +24,16 @@ mod args;
 
 pub fn cli() {
     let matches = Command::new("drone_network")
-        .version("0.1.4")
+        .version("0.2.1")
         .about("Models drone networks.")
         .args([
             arg_experiment_title(),
             arg_tx_module_type(),
+            arg_signal_loss_response(),
             arg_topology(),
             arg_drone_count(),
             arg_delay_multiplier(),
+            arg_ew_frequency(),
             arg_malware_type(),
             arg_display_malware_propagation(),
             arg_json_input(),
@@ -58,7 +61,7 @@ fn arg_experiment_title() -> Arg {
         ])
         .value_parser([
             EXP_CUSTOM,
-            EXP_GPS_ONLY,
+            EXP_EWD,
             EXP_GPS_SPOOFING,
             EXP_MALWARE_INFECTION,
             EXP_MOVEMENT,
@@ -72,7 +75,7 @@ fn arg_tx_module_type() -> Arg {
         .long("tx")
         .value_parser([TX_LEVEL, TX_STRENGTH])
         .required_if_eq_any([
-            (ARG_EXPERIMENT_TITLE, EXP_GPS_ONLY),
+            (ARG_EXPERIMENT_TITLE, EXP_EWD),
             (ARG_EXPERIMENT_TITLE, EXP_GPS_SPOOFING),
             (ARG_EXPERIMENT_TITLE, EXP_MALWARE_INFECTION),
             (ARG_EXPERIMENT_TITLE, EXP_MOVEMENT),
@@ -81,13 +84,29 @@ fn arg_tx_module_type() -> Arg {
         .help("Choose TX system type")
 }
 
+fn arg_signal_loss_response() -> Arg {
+    Arg::new(ARG_SIG_LOSS_RESP)
+        .long("slr")
+        .value_parser(
+            [SLR_ASCEND, SLR_IGNORE, SLR_HOVER, SLR_RTH, SLR_SHUTDOWN]
+        )
+        .default_value(SLR_IGNORE)
+        .conflicts_with(EXP_SIGNAL_LOSS)
+        .help(
+            format!(
+                "Choose control signal loss response \
+                (except \"{EXP_SIGNAL_LOSS}\" experiment)"
+            )
+        )
+}
+
 fn arg_topology() -> Arg {
     Arg::new(ARG_NETWORK_TOPOLOGY)
         .short('t')
         .long("topology")
         .value_parser([TOPOLOGY_MESH, TOPOLOGY_STAR])
         .required_if_eq_any([
-            (ARG_EXPERIMENT_TITLE, EXP_GPS_ONLY),
+            (ARG_EXPERIMENT_TITLE, EXP_EWD),
             (ARG_EXPERIMENT_TITLE, EXP_GPS_SPOOFING),
             (ARG_EXPERIMENT_TITLE, EXP_MALWARE_INFECTION),
             (ARG_EXPERIMENT_TITLE, EXP_MOVEMENT),
@@ -102,6 +121,19 @@ fn arg_drone_count() -> Arg {
         .value_parser(value_parser!(usize))
         .default_value(DEFAULT_DRONE_COUNT)
         .help("Set the number of drones in the network (non-negative integer)")
+}
+
+fn arg_ew_frequency() -> Arg {
+    Arg::new(ARG_EW_FREQUENCY)
+        .short('f')
+        .long("ew-freq")
+        .value_parser([EW_CONTROL, EW_GPS])
+        .required_if_eq(ARG_EXPERIMENT_TITLE, EXP_EWD)
+        .help(
+            format!(
+                "Choose EW frequency (\"{EXP_EWD}\" experiment)"
+            )
+        )
 }
 
 fn arg_delay_multiplier() -> Arg {

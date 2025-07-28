@@ -50,6 +50,8 @@ impl<'a> ModelPlayer<'a> {
         }
 
         for _ in (0..self.end_time).step_by(ITERATION_TIME as usize) {
+            info!("Current time: {}", self.current_time);
+
             if let Some(
                 ref json_output_directory
             ) = self.json_output_directory {

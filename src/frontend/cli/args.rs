@@ -6,9 +6,10 @@ use env_logger::{Builder, Target};
 use log::LevelFilter;
 
 use crate::backend::connections::Topology;
+use crate::backend::device::SignalLossResponse;
 use crate::backend::device::systems::TXModuleType;
 use crate::backend::malware::{Malware, MalwareType};
-use crate::backend::mathphysics::Millisecond;
+use crate::backend::mathphysics::{Frequency, Millisecond, Point3D};
 use crate::frontend::{MALWARE_INFECTION_DELAY, MALWARE_SPREAD_DELAY};
 use crate::frontend::config::{
     GeneralConfig, ModelConfig, ModelPlayerConfig, RenderConfig
@@ -24,6 +25,7 @@ pub const ARG_DELAY_MULTIPLIER: &str = "delay multiplier";
 pub const ARG_DISPLAY_MALWARE_PROPAGATION: &str = "display malware propagation";
 pub const ARG_DRONE_COUNT: &str      = "drone count";
 pub const ARG_EXPERIMENT_TITLE: &str = "experiment title";
+pub const ARG_EW_FREQUENCY: &str     = "electronic warfare frequency";
 pub const ARG_JSON_INPUT: &str       = "json input path";
 pub const ARG_JSON_OUTPUT: &str      = "json directory output path";
 pub const ARG_MALWARE_TYPE: &str     = "malware type";
@@ -32,19 +34,29 @@ pub const ARG_NO_PLOT: &str          = "no GIF rendering";
 pub const ARG_PLOT_CAPTION: &str     = "plot caption";
 pub const ARG_PLOT_HEIGHT: &str      = "plot height";
 pub const ARG_PLOT_WIDTH: &str       = "plot width";
+pub const ARG_SIG_LOSS_RESP: &str    = "control signal loss response"; 
 pub const ARG_SIM_TIME: &str         = "simulation time";
 pub const ARG_TX_MODULE: &str        = "tx module type";
 pub const ARG_VERBOSE: &str          = "verbose logs";
 
 pub const EXP_CUSTOM: &str            = "custom";
-pub const EXP_GPS_ONLY: &str          = "gpsewd";
+pub const EXP_EWD: &str               = "ewd";
 pub const EXP_GPS_SPOOFING: &str      = "gpsspoof";
 pub const EXP_MALWARE_INFECTION: &str = "malware";
 pub const EXP_MOVEMENT: &str          = "move";
 pub const EXP_SIGNAL_LOSS: &str       = "signalloss";
 
+pub const EW_CONTROL: &str = "control";
+pub const EW_GPS: &str     = "gps";
+
 pub const MAL_DOS: &str       = "dos";
 pub const MAL_INDICATOR: &str = "indicator";
+
+pub const SLR_ASCEND: &str   = "ascend";
+pub const SLR_IGNORE: &str   = "ignore";
+pub const SLR_HOVER: &str    = "hover";
+pub const SLR_RTH: &str      = "rth"; // Return to command center.
+pub const SLR_SHUTDOWN: &str = "shutdown"; 
 
 pub const TOPOLOGY_MESH: &str = "mesh";
 pub const TOPOLOGY_STAR: &str = "star";
@@ -75,7 +87,8 @@ pub fn handle_arguments(matches: &ArgMatches) {
             
             Example::Custom(model_path)
         },
-        EXP_GPS_ONLY          => Example::GPSEWD,
+        EXP_EWD               => 
+            Example::EWD(ew_frequency(matches)),
         EXP_GPS_SPOOFING      => Example::GPSSpoofing,
         EXP_MALWARE_INFECTION => Example::MalwareInfection, 
         EXP_MOVEMENT          => Example::Movement,
@@ -101,6 +114,7 @@ pub fn handle_arguments(matches: &ArgMatches) {
 fn model_config(matches: &ArgMatches) -> ModelConfig {
     ModelConfig::new(
         trx_system_type(matches), 
+        signal_loss_response(matches),
         topology(matches),
         drone_count(matches),
         delay_multiplier(matches),
@@ -137,6 +151,33 @@ fn input_model_path(matches: &ArgMatches) -> Option<PathBuf> {
     matches
         .get_one::<PathBuf>(ARG_JSON_INPUT)
         .cloned()
+}
+
+fn ew_frequency(matches: &ArgMatches) -> Frequency {
+    match matches
+        .get_one::<String>(ARG_EW_FREQUENCY) 
+        .unwrap()
+        .as_str() 
+    {
+        EW_CONTROL  => Frequency::Control,
+        EW_GPS      => Frequency::GPS,
+        _           => panic!("Wrong EW frequency")
+    }
+}
+
+fn signal_loss_response(matches: &ArgMatches) -> SignalLossResponse {
+    match matches
+        .get_one::<String>(ARG_SIG_LOSS_RESP) 
+        .unwrap()
+        .as_str() 
+    {   
+        SLR_ASCEND   => SignalLossResponse::Ascend,
+        SLR_IGNORE   => SignalLossResponse::Ignore,
+        SLR_HOVER    => SignalLossResponse::Hover,
+        SLR_RTH      => SignalLossResponse::ReturnToHome(Point3D::default()),
+        SLR_SHUTDOWN => SignalLossResponse::Shutdown,
+        _            => panic!("Wrong signal loss response")
+    }
 }
 
 fn trx_system_type(matches: &ArgMatches) -> TXModuleType {

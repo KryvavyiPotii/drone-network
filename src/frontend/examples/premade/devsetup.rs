@@ -40,6 +40,7 @@ pub fn create_drone_vec(
     network_position: &NetworkPosition,
     malware: Option<Malware>,
     tx_module_type: TXModuleType,
+    signal_loss_response: SignalLossResponse,
     tx_control_area_radius: Meter,
     max_gps_rx_signal_quality: SignalQuality,
 ) -> Vec<Device> {
@@ -60,7 +61,7 @@ pub fn create_drone_vec(
         .set_power_system(power_system)
         .set_movement_system(movement_system)
         .set_trx_system(trx_system)
-        .set_signal_loss_response(SignalLossResponse::Ignore);
+        .set_signal_loss_response(signal_loss_response);
 
     (0..drone_count)
         .map(|_| {
