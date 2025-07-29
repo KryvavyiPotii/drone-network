@@ -495,6 +495,7 @@ impl Device {
         self.power_system    = PowerSystem::default();
         self.movement_system = MovementSystem::default();
         self.trx_system      = TRXSystem::default();
+        self.security_system = SecuritySystem::default();
     }
 
     fn handle_malware_infections(&mut self) {
