@@ -3,8 +3,8 @@ use crate::backend::device::{
     Device, DeviceBuilder, SignalLossResponse, device_map_from_slice,
 };
 use crate::backend::device::systems::TXModuleType;
-use crate::backend::malware::MalwareType;
-use crate::backend::mathphysics::{Frequency, Point3D};
+use crate::backend::malware::{Malware, MalwareType};
+use crate::backend::mathphysics::{Frequency, Meter, Point3D};
 use crate::backend::networkmodel::NetworkModelBuilder; 
 use crate::backend::networkmodel::attack::{AttackType, AttackerDevice};
 use crate::backend::signal::{
@@ -49,11 +49,14 @@ fn derive_filename(
 }
 
 
-pub fn ewd(general_config: &GeneralConfig, ew_frequency: Frequency) {
-    let cc_tx_control_area_radius    = 300.0;
+pub fn ewd(
+    general_config: &GeneralConfig, 
+    ew_frequency: Frequency,
+    ewd_area_radius: Meter,
+) {
+    let cc_tx_control_area_radius    = 200.0;
     let drone_tx_control_area_radius = 50.0;
     let drone_gps_rx_signal_quality  = RED_SIGNAL_QUALITY; 
-    let ewd_suppression_area_radius  = 100.0; 
         
     let command_center = DeviceBuilder::new()
         .set_real_position(CC_POSITION)
@@ -71,7 +74,7 @@ pub fn ewd(general_config: &GeneralConfig, ew_frequency: Frequency) {
     let mut devices = create_drone_vec(
         general_config.model_config().drone_count(),
         &default_network_position(NETWORK_ORIGIN),
-        general_config.model_config().malware(),
+        None,
         general_config.model_config().tx_module_type(),
         general_config.model_config().signal_loss_response(),
         drone_tx_control_area_radius, 
@@ -86,7 +89,7 @@ pub fn ewd(general_config: &GeneralConfig, ew_frequency: Frequency) {
             ewd_trx_system(
                 general_config.model_config().tx_module_type(), 
                 ew_frequency, 
-                ewd_suppression_area_radius
+                ewd_area_radius
             )
         )
         .build();
@@ -155,7 +158,7 @@ pub fn movement(general_config: &GeneralConfig) {
     let mut devices = create_drone_vec(
         general_config.model_config().drone_count(),
         &default_network_position(NETWORK_ORIGIN),
-        general_config.model_config().malware(),
+        None,
         general_config.model_config().tx_module_type(),
         general_config.model_config().signal_loss_response(),
         drone_tx_control_area_radius, 
@@ -202,11 +205,13 @@ pub fn movement(general_config: &GeneralConfig) {
     model_player.play();
 }
 
-pub fn gps_spoofing(general_config: &GeneralConfig) {
+pub fn gps_spoofing(
+    general_config: &GeneralConfig,
+    spoofer_area_radius: Meter
+) {
     let cc_tx_control_area_radius    = 300.0;
     let drone_tx_control_area_radius = 50.0;
     let drone_gps_rx_signal_quality  = RED_SIGNAL_QUALITY; 
-    let gps_spoofing_area_radius     = 100.0; 
         
     let command_center = DeviceBuilder::new()
         .set_real_position(CC_POSITION)
@@ -224,7 +229,7 @@ pub fn gps_spoofing(general_config: &GeneralConfig) {
     let mut devices = create_drone_vec(
         general_config.model_config().drone_count(),
         &default_network_position(NETWORK_ORIGIN),
-        general_config.model_config().malware(),
+        None,
         general_config.model_config().tx_module_type(),
         general_config.model_config().signal_loss_response(),
         drone_tx_control_area_radius, 
@@ -239,7 +244,7 @@ pub fn gps_spoofing(general_config: &GeneralConfig) {
             ewd_trx_system(
                 general_config.model_config().tx_module_type(), 
                 Frequency::GPS, 
-                gps_spoofing_area_radius
+                spoofer_area_radius
             )
         )
         .build();
@@ -294,13 +299,15 @@ pub fn gps_spoofing(general_config: &GeneralConfig) {
     model_player.play();
 }
 
-pub fn malware_infection(general_config: &GeneralConfig) {
+pub fn malware_infection(
+    general_config: &GeneralConfig,
+    malware: Malware,
+    attacker_area_radius: Meter,
+    display_malware_propagation: bool
+) {
     let cc_tx_control_area_radius    = 200.0;
     let drone_tx_control_area_radius = 15.0;
     let drone_gps_rx_signal_quality  = GREEN_SIGNAL_QUALITY; 
-    let attacker_tx_area_radius      = 50.0;
-    let malware = general_config.model_config().malware()
-        .expect("Missing malware type");
 
     let command_center = DeviceBuilder::new()
         .set_real_position(Point3D::new(100.0, 50.0, 0.0))
@@ -318,7 +325,7 @@ pub fn malware_infection(general_config: &GeneralConfig) {
     let mut devices = create_drone_vec(
         general_config.model_config().drone_count(),
         &default_network_position(Point3D::new(50.0, 50.0, 0.0)),
-        general_config.model_config().malware(),
+        Some(malware),
         general_config.model_config().tx_module_type(),
         general_config.model_config().signal_loss_response(),
         drone_tx_control_area_radius, 
@@ -333,7 +340,7 @@ pub fn malware_infection(general_config: &GeneralConfig) {
             ewd_trx_system(
                 general_config.model_config().tx_module_type(),
                 Frequency::Control,
-                attacker_tx_area_radius
+                attacker_area_radius
             )
         )
         .build();
@@ -351,7 +358,7 @@ pub fn malware_infection(general_config: &GeneralConfig) {
         .set_topology(general_config.model_config().topology())
         .set_delay_multiplier(general_config.model_config().delay_multiplier());
     
-    if general_config.display_malware_propagation() {
+    if display_malware_propagation {
         malware_propagation(
             attacker,
             drone_network_builder.clone(),

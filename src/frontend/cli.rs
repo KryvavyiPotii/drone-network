@@ -7,15 +7,16 @@ use crate::frontend::renderer::Pixel;
 
 use args::{
     handle_arguments, ARG_DELAY_MULTIPLIER, ARG_DISPLAY_MALWARE_PROPAGATION, 
-    ARG_DRONE_COUNT, ARG_EXPERIMENT_TITLE, ARG_EW_FREQUENCY, ARG_JSON_INPUT, 
-    ARG_MALWARE_TYPE, ARG_NO_PLOT, ARG_NETWORK_TOPOLOGY, ARG_JSON_OUTPUT, 
-    ARG_PLOT_CAPTION, ARG_PLOT_HEIGHT, ARG_PLOT_WIDTH, ARG_SIG_LOSS_RESP, 
-    ARG_SIM_TIME, ARG_TX_MODULE, ARG_VERBOSE, DEFAULT_DELAY_MULTIPLIER, 
-    DEFAULT_DRONE_COUNT, DEFAULT_PLOT_CAPTION, DEFAULT_PLOT_HEIGHT, 
-    DEFAULT_PLOT_WIDTH, DEFAULT_SIM_TIME, EXP_CUSTOM, EXP_EWD, EXP_GPS_SPOOFING, 
-    EXP_MALWARE_INFECTION, EXP_MOVEMENT, EXP_SIGNAL_LOSS, EW_CONTROL, EW_GPS, 
-    MAL_DOS, MAL_INDICATOR, SLR_ASCEND, SLR_IGNORE, SLR_HOVER, SLR_RTH, 
-    SLR_SHUTDOWN, TOPOLOGY_MESH, TOPOLOGY_STAR, TX_LEVEL, TX_STRENGTH
+    ARG_DRONE_COUNT, ARG_EXPERIMENT_TITLE, ARG_EW_FREQUENCY, 
+    ARG_ATTACKER_RADIUS, ARG_JSON_INPUT, ARG_MALWARE_TYPE, ARG_NO_PLOT, 
+    ARG_NETWORK_TOPOLOGY, ARG_JSON_OUTPUT, ARG_PLOT_CAPTION, ARG_PLOT_HEIGHT, 
+    ARG_PLOT_WIDTH, ARG_SIG_LOSS_RESP, ARG_SIM_TIME, ARG_TX_MODULE, ARG_VERBOSE, 
+    DEFAULT_DELAY_MULTIPLIER, DEFAULT_DRONE_COUNT, DEFAULT_PLOT_CAPTION, 
+    DEFAULT_PLOT_HEIGHT, DEFAULT_PLOT_WIDTH, DEFAULT_SIM_TIME, EXP_CUSTOM, 
+    EXP_EWD, EXP_GPS_SPOOFING, EXP_MALWARE_INFECTION, EXP_MOVEMENT, 
+    EXP_SIGNAL_LOSS, EW_CONTROL, EW_GPS, MAL_DOS, MAL_INDICATOR, SLR_ASCEND, 
+    SLR_IGNORE, SLR_HOVER, SLR_RTH, SLR_SHUTDOWN, TOPOLOGY_MESH, TOPOLOGY_STAR, 
+    TX_LEVEL, TX_STRENGTH
 };
 
 
@@ -34,6 +35,7 @@ pub fn cli() {
             arg_drone_count(),
             arg_delay_multiplier(),
             arg_ew_frequency(),
+            arg_attacker_radius(),
             arg_malware_type(),
             arg_display_malware_propagation(),
             arg_json_input(),
@@ -125,13 +127,26 @@ fn arg_drone_count() -> Arg {
 
 fn arg_ew_frequency() -> Arg {
     Arg::new(ARG_EW_FREQUENCY)
-        .short('f')
         .long("ew-freq")
         .value_parser([EW_CONTROL, EW_GPS])
         .required_if_eq(ARG_EXPERIMENT_TITLE, EXP_EWD)
+        .help(format!("Choose EW frequency (\"{EXP_EWD}\" experiment)"))
+}
+
+fn arg_attacker_radius() -> Arg {
+    Arg::new(ARG_ATTACKER_RADIUS)
+        .long("attacker-radius")
+        .value_parser(value_parser!(f32))
+        .required_if_eq_any([
+            (ARG_EXPERIMENT_TITLE, EXP_EWD),
+            (ARG_EXPERIMENT_TITLE, EXP_GPS_SPOOFING),
+            (ARG_EXPERIMENT_TITLE, EXP_MALWARE_INFECTION)
+        ])
         .help(
             format!(
-                "Choose EW frequency (\"{EXP_EWD}\" experiment)"
+                "Set attacker device area radius (non-negative float) \
+                (\"{EXP_EWD}\", \"{EXP_GPS_SPOOFING}\" and \
+                \"{EXP_MALWARE_INFECTION}\" experiments)"
             )
         )
 }

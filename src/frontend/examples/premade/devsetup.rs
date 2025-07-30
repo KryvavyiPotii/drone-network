@@ -22,7 +22,7 @@ use crate::frontend::{MALWARE_INFECTION_DELAY, MALWARE_SPREAD_DELAY};
 
 
 pub const DEVICE_MAX_POWER: PowerUnit = 100_000;
-pub const NETWORK_ORIGIN: Point3D     = Point3D { x: 150.3, y: 90.6, z: 25.5 };
+pub const NETWORK_ORIGIN: Point3D     = Point3D { x: 150.0, y: 90.0, z: 25.0 };
 pub const CC_POSITION: Point3D        = Point3D { x: 200.0, y: 100.0, z: 0.0 };
 
 const DEFAULT_GPS_POSITION_IN_METERS: Point3D = Point3D { 
@@ -74,13 +74,17 @@ pub fn create_drone_vec(
             };
 
             drone_builder
-                .set_real_position(generate_drone_position(network_position))
+                .set_real_position(
+                    generate_drone_position_in_rect_prism(network_position)
+                )
                 .build()
         })  
         .collect()
 }
 
-fn generate_drone_position(network_position: &NetworkPosition) -> Point3D {
+fn generate_drone_position_in_rect_prism(
+    network_position: &NetworkPosition
+) -> Point3D {
     let mut rng = rand::rng();
 
     let random_offset = Point3D::new(

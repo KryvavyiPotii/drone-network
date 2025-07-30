@@ -10,10 +10,10 @@ use crate::backend::signal::{Data, FreqToQualityMap, Signal, SignalQuality};
 pub type ReceivedSignal = (Millisecond, Signal);
 
 
-const RECEIVE_GREEN_SIGNAL: f64  = 0.95;
-const RECEIVE_YELLOW_SIGNAL: f64 = 0.70;
-const RECEIVE_RED_SIGNAL: f64    = 0.50;
-const RECEIVE_BLACK_SIGNAL: f64  = 0.10;
+const RECEIVE_GREEN_SIGNAL: f64  = 1.0;
+const RECEIVE_YELLOW_SIGNAL: f64 = 1.0;
+const RECEIVE_RED_SIGNAL: f64    = 1.0;
+const RECEIVE_BLACK_SIGNAL: f64  = 1.0;
 
 
 fn signal_reached_rx(signal_quality: SignalQuality) -> bool {

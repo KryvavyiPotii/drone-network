@@ -1,6 +1,7 @@
 use std::path::PathBuf;
 
-use crate::backend::mathphysics::Frequency;
+use crate::backend::malware::Malware;
+use crate::backend::mathphysics::{Frequency, Meter};
 
 use super::config::GeneralConfig;
 
@@ -21,9 +22,9 @@ mod premade;
 #[derive(Clone)]
 pub enum Example {
     Custom(PathBuf),
-    EWD(Frequency),
-    GPSSpoofing,
-    MalwareInfection,
+    EWD(Frequency, Meter),
+    GPSSpoofing(Meter),
+    MalwareInfection(Malware, Meter, bool),
     Movement,
     SignalLossResponse,
 }
@@ -31,11 +32,23 @@ pub enum Example {
 impl Example {
     pub fn execute(&self, general_config: &GeneralConfig) {
         match self {
-            Self::Custom(json_path)  => 
+            Self::Custom(json_path)                                           => 
                 custom(json_path, general_config.model_player_config()),
-            Self::EWD(frequency)     => ewd(general_config, *frequency),
-            Self::GPSSpoofing        => gps_spoofing(general_config),
-            Self::MalwareInfection   => malware_infection(general_config),
+            Self::EWD(frequency, ewd_area_radius)                             => 
+                ewd(general_config, *frequency, *ewd_area_radius),
+            Self::GPSSpoofing(spoofer_area_radius)                            => 
+                gps_spoofing(general_config, *spoofer_area_radius),
+            Self::MalwareInfection(
+                malware, 
+                attacker_area_radius, 
+                display_propagation
+            ) => 
+                malware_infection(
+                    general_config, 
+                    *malware,
+                    *attacker_area_radius,
+                    *display_propagation
+                ),
             Self::Movement           => movement(general_config),
             Self::SignalLossResponse => signal_loss_response(general_config),
         }

@@ -3,7 +3,6 @@ use std::path::{Path, PathBuf};
 use crate::backend::connections::Topology;
 use crate::backend::device::SignalLossResponse;
 use crate::backend::device::systems::TXModuleType;
-use crate::backend::malware::Malware;
 use crate::backend::mathphysics::Millisecond;
 
 use crate::frontend::renderer::{
@@ -37,25 +36,6 @@ impl GeneralConfig {
     pub fn model_player_config(&self) -> &ModelPlayerConfig {
         &self.model_player_config
     }
-    
-    #[must_use]
-    pub fn malware_list(&self, indicator_malware: Malware) -> Vec<Malware> {
-        match self.model_config.malware {
-            Some(malware) if self.display_malware_propagation() =>
-                vec![malware, indicator_malware],
-            Some(malware) => vec![malware],
-            None          => Vec::new()
-        }
-    }
-
-    #[must_use]
-    pub fn display_malware_propagation(&self) -> bool {
-        if let Some(render_config) = &self.model_player_config.render_config {
-            render_config.display_malware_propagation
-        } else {
-            false
-        }
-    }
 }
 
 
@@ -66,7 +46,6 @@ pub struct ModelConfig {
     topology: Topology,
     drone_count: usize,
     delay_multiplier: f32,
-    malware: Option<Malware>,
 }
 
 impl ModelConfig {
@@ -77,7 +56,6 @@ impl ModelConfig {
         topology: Topology,
         drone_count: usize,
         delay_multiplier: f32,
-        malware: Option<Malware>,
     ) -> Self {
         Self {
             tx_module_type,
@@ -85,7 +63,6 @@ impl ModelConfig {
             topology,
             drone_count,
             delay_multiplier,
-            malware,
         }
     }
 
@@ -112,11 +89,6 @@ impl ModelConfig {
     #[must_use]
     pub fn delay_multiplier(&self) -> f32 {
         self.delay_multiplier
-    }
-    
-    #[must_use]
-    pub fn malware(&self) -> Option<Malware> {
-        self.malware
     }
 }
 
@@ -164,7 +136,6 @@ pub struct RenderConfig {
     axes_ranges: Axes3DRanges,
     camera_angle: CameraAngle,
     device_coloring: DeviceColoring,
-    display_malware_propagation: bool,
 }
 
 impl RenderConfig {
@@ -175,7 +146,6 @@ impl RenderConfig {
         axes_ranges: Axes3DRanges,
         camera_angle: CameraAngle,
         device_coloring: DeviceColoring,
-        display_malware_propagation: bool,
     ) -> Self {
         Self {
             plot_caption: plot_caption.to_string(),
@@ -183,7 +153,6 @@ impl RenderConfig {
             axes_ranges,
             camera_angle,
             device_coloring,
-            display_malware_propagation,
         }
     }
     
@@ -210,10 +179,5 @@ impl RenderConfig {
     #[must_use]
     pub fn device_coloring(&self) -> DeviceColoring {
         self.device_coloring
-    }
-    
-    #[must_use]
-    pub fn display_malware_propagation(&self) -> bool {
-        self.display_malware_propagation
     }
 }

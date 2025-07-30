@@ -21,6 +21,7 @@ use crate::frontend::renderer::{
 };
 
 
+pub const ARG_ATTACKER_RADIUS: &str  = "attacker device area radius";
 pub const ARG_DELAY_MULTIPLIER: &str = "delay multiplier";
 pub const ARG_DISPLAY_MALWARE_PROPAGATION: &str = "display malware propagation";
 pub const ARG_DRONE_COUNT: &str      = "drone count";
@@ -80,17 +81,18 @@ pub fn handle_arguments(matches: &ArgMatches) {
     };
      
     let example = match experiment_title.as_str() {
-        EXP_CUSTOM            => {
-            let Some(model_path) = input_model_path(matches) else {
-                return;
-            };
-            
-            Example::Custom(model_path)
-        },
+        EXP_CUSTOM            =>
+            Example::Custom(input_model_path(matches)),
         EXP_EWD               => 
-            Example::EWD(ew_frequency(matches)),
-        EXP_GPS_SPOOFING      => Example::GPSSpoofing,
-        EXP_MALWARE_INFECTION => Example::MalwareInfection, 
+            Example::EWD(ew_frequency(matches), attacker_radius(matches)),
+        EXP_GPS_SPOOFING      => 
+            Example::GPSSpoofing(attacker_radius(matches)),
+        EXP_MALWARE_INFECTION => 
+            Example::MalwareInfection(
+                malware(matches),
+                attacker_radius(matches),
+                display_malware_propagation(matches),
+            ), 
         EXP_MOVEMENT          => Example::Movement,
         EXP_SIGNAL_LOSS       => Example::SignalLossResponse,
         _                     => return
@@ -118,7 +120,6 @@ fn model_config(matches: &ArgMatches) -> ModelConfig {
         topology(matches),
         drone_count(matches),
         delay_multiplier(matches),
-        malware(matches),
     )
 }
 
@@ -143,14 +144,14 @@ fn render_config(matches: &ArgMatches) -> RenderConfig {
         DEFAULT_AXES_RANGE,
         DEFAULT_CAMERA_ANGLE,
         DEFAULT_DEVICE_COLORING,
-        display_malware_propagation(matches),
     )
 }
 
-fn input_model_path(matches: &ArgMatches) -> Option<PathBuf> {
+fn input_model_path(matches: &ArgMatches) -> PathBuf {
     matches
         .get_one::<PathBuf>(ARG_JSON_INPUT)
-        .cloned()
+        .unwrap()
+        .to_path_buf()
 }
 
 fn ew_frequency(matches: &ArgMatches) -> Frequency {
@@ -163,6 +164,12 @@ fn ew_frequency(matches: &ArgMatches) -> Frequency {
         EW_GPS      => Frequency::GPS,
         _           => panic!("Wrong EW frequency")
     }
+}
+
+fn attacker_radius(matches: &ArgMatches) -> f32 {
+    *matches
+        .get_one::<f32>(ARG_ATTACKER_RADIUS)
+        .unwrap()
 }
 
 fn signal_loss_response(matches: &ArgMatches) -> SignalLossResponse {
@@ -216,13 +223,15 @@ fn delay_multiplier(matches: &ArgMatches) -> f32 {
         .unwrap()
 }
 
-fn malware(matches: &ArgMatches) -> Option<Malware> {
-    let malware_type_name = matches.get_one::<String>(ARG_MALWARE_TYPE)?;
-        
-    let malware_type = match malware_type_name.as_str() {
+fn malware(matches: &ArgMatches) -> Malware {
+    let malware_type = match matches
+        .get_one::<String>(ARG_MALWARE_TYPE)
+        .unwrap()
+        .as_str() 
+    {
         MAL_DOS       => MalwareType::DoS(DEVICE_MAX_POWER),
         MAL_INDICATOR => MalwareType::Indicator,
-        _             => return None,
+        _             => panic!("Wrong malware type"),
     };
 
     let malware = Malware::new(
@@ -231,7 +240,7 @@ fn malware(matches: &ArgMatches) -> Option<Malware> {
         MALWARE_SPREAD_DELAY
     );
 
-    Some(malware)
+    malware
 }
 
 fn json_output_directory(matches: &ArgMatches) -> Option<&Path> {
