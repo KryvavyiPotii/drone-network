@@ -34,8 +34,10 @@ Options:
           Set the number of drones in the network (non-negative integer) [default: 100]
   -d, --delay-multiplier <delay multiplier>
           Set signal transmission delay multiplier (non-negative float) [default: 0.0]
-  -f, --ew-freq <electronic warfare frequency>
+      --ew-freq <electronic warfare frequency>
           Choose EW frequency ("ewd" experiment) [possible values: control, gps]
+      --attacker-radius <attacker device area radius>
+          Set attacker device area radius (non-negative float) ("ewd", "gpsspoof" and "malware" experiments)
   -i, --infection <malware type>
           Choose infection type ("malware" experiment) [possible values: dos, indicator]
       --display-propagation
