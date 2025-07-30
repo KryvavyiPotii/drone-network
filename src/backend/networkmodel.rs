@@ -197,7 +197,6 @@ impl NetworkModel {
     pub fn update(&mut self) {
         self.spread_malware();
         self.update_devices();
-        self.remove_shut_down_devices();   
         self.update_connections_graph();
         self.signal_queue.remove_old_signals(self.current_time);
      
@@ -265,10 +264,6 @@ impl NetworkModel {
         }
     }
 
-    fn remove_shut_down_devices(&mut self) {
-        self.device_map.retain(|_, device| !device.is_shut_down());
-    }
-    
     fn update_connections_graph(&mut self) {
         self.connections.update(self.command_device_id, &self.device_map);
     }

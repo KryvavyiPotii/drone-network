@@ -93,6 +93,7 @@ fn arg_signal_loss_response() -> Arg {
             [SLR_ASCEND, SLR_IGNORE, SLR_HOVER, SLR_RTH, SLR_SHUTDOWN]
         )
         .default_value(SLR_IGNORE)
+        .required(true)
         .conflicts_with(EXP_SIGNAL_LOSS)
         .help(
             format!(
