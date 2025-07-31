@@ -22,9 +22,18 @@ mod premade;
 #[derive(Clone)]
 pub enum Example {
     Custom(PathBuf),
-    EWD(Frequency, Meter),
-    GPSSpoofing(Meter),
-    MalwareInfection(Malware, Meter, bool),
+    EWD { 
+        ew_frequency: Frequency, 
+        ewd_area_radius: Meter
+    },
+    GPSSpoofing {
+        spoofer_area_radius: Meter
+    },
+    MalwareInfection {
+        malware: Malware, 
+        attacker_area_radius: Meter, 
+        display_propagation: bool
+    },
     Movement,
     SignalLossResponse,
 }
@@ -34,15 +43,15 @@ impl Example {
         match self {
             Self::Custom(json_path)                                           => 
                 custom(json_path, general_config.model_player_config()),
-            Self::EWD(frequency, ewd_area_radius)                             => 
-                ewd(general_config, *frequency, *ewd_area_radius),
-            Self::GPSSpoofing(spoofer_area_radius)                            => 
+            Self::EWD { ew_frequency, ewd_area_radius }                       => 
+                ewd(general_config, *ew_frequency, *ewd_area_radius),
+            Self::GPSSpoofing { spoofer_area_radius }                         => 
                 gps_spoofing(general_config, *spoofer_area_radius),
-            Self::MalwareInfection(
+            Self::MalwareInfection {
                 malware, 
                 attacker_area_radius, 
                 display_propagation
-            ) => 
+            } => 
                 malware_infection(
                     general_config, 
                     *malware,

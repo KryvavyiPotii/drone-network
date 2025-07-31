@@ -19,7 +19,7 @@ It is a reimagined and enhanced version of [drone-network-proto](https://github.
 $ drone_network -h
 Models drone networks.
 
-Usage: drone_network-x64-linux [OPTIONS]
+Usage: drone_network-x64-linux [OPTIONS] --slr <control signal loss response>
 
 Options:
   -x, --experiment <experiment title>
@@ -28,18 +28,20 @@ Options:
           Choose TX system type [possible values: level, strength]
       --slr <control signal loss response>
           Choose control signal loss response (except "signalloss" experiment) [default: ignore] [possible values: ascend, ignore, hover, rth, shutdown]
-  -t, --topology <network topology>
+      --topology <network topology>
           Choose network topology [possible values: mesh, star]
   -n <drone count>
           Set the number of drones in the network (non-negative integer) [default: 100]
+      --time <simulation time>
+          Set the simulation time (non-negative integer, in millis) [default: 15000]
   -d, --delay-multiplier <delay multiplier>
           Set signal transmission delay multiplier (non-negative float) [default: 0.0]
       --ew-freq <electronic warfare frequency>
           Choose EW frequency ("ewd" experiment) [possible values: control, gps]
       --attacker-radius <attacker device area radius>
           Set attacker device area radius (non-negative float) ("ewd", "gpsspoof" and "malware" experiments)
-  -i, --infection <malware type>
-          Choose infection type ("malware" experiment) [possible values: dos, indicator]
+      --mt <malware type>
+          Choose malware type ("malware" experiment) [possible values: dos, indicator]
       --display-propagation
           Show malware propagation as well ("malware" experiment)
       --ji <json input path>
@@ -54,8 +56,6 @@ Options:
           Set the plot width (in pixels) [default: 400]
       --height <plot height>
           Set the plot height (in pixels) [default: 300]
-      --time <simulation time>
-          Set the simulation time (in millis) [default: 15000]
   -v, --verbose
           Show full log output
   -h, --help

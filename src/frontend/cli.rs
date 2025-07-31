@@ -33,6 +33,7 @@ pub fn cli() {
             arg_signal_loss_response(),
             arg_topology(),
             arg_drone_count(),
+            arg_simulation_time(),
             arg_delay_multiplier(),
             arg_ew_frequency(),
             arg_attacker_radius(),
@@ -44,7 +45,6 @@ pub fn cli() {
             arg_plot_caption(),
             arg_plot_width(),
             arg_plot_height(),
-            arg_simulation_time(),
             arg_verbose(),
         ])
         .arg_required_else_help(true)
@@ -105,7 +105,6 @@ fn arg_signal_loss_response() -> Arg {
 
 fn arg_topology() -> Arg {
     Arg::new(ARG_NETWORK_TOPOLOGY)
-        .short('t')
         .long("topology")
         .value_parser([TOPOLOGY_MESH, TOPOLOGY_STAR])
         .required_if_eq_any([
@@ -124,6 +123,14 @@ fn arg_drone_count() -> Arg {
         .value_parser(value_parser!(usize))
         .default_value(DEFAULT_DRONE_COUNT)
         .help("Set the number of drones in the network (non-negative integer)")
+}
+
+fn arg_simulation_time() -> Arg {
+    Arg::new(ARG_SIM_TIME)
+        .long("time")
+        .value_parser(value_parser!(Millisecond))
+        .default_value(DEFAULT_SIM_TIME)
+        .help("Set the simulation time (non-negative integer, in millis)")
 }
 
 fn arg_ew_frequency() -> Arg {
@@ -178,12 +185,11 @@ fn arg_display_malware_propagation() -> Arg {
 
 fn arg_malware_type() -> Arg {
     Arg::new(ARG_MALWARE_TYPE)
-        .short('i')
-        .long("infection")
+        .long("mt")
         .value_parser([MAL_DOS, MAL_INDICATOR])
         .help(
             format!(
-                "Choose infection type (\"{EXP_MALWARE_INFECTION}\" experiment)"
+                "Choose malware type (\"{EXP_MALWARE_INFECTION}\" experiment)"
             )
         )
 }
@@ -249,14 +255,6 @@ fn arg_plot_height() -> Arg {
         .value_parser(value_parser!(Pixel))
         .default_value(DEFAULT_PLOT_HEIGHT)
         .help("Set the plot height (in pixels)")
-}
-
-fn arg_simulation_time() -> Arg {
-    Arg::new(ARG_SIM_TIME)
-        .long("time")
-        .value_parser(value_parser!(Millisecond))
-        .default_value(DEFAULT_SIM_TIME)
-        .help("Set the simulation time (in millis)")
 }
 
 fn arg_verbose() -> Arg {

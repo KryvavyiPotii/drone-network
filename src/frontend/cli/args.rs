@@ -84,15 +84,20 @@ pub fn handle_arguments(matches: &ArgMatches) {
         EXP_CUSTOM            =>
             Example::Custom(input_model_path(matches)),
         EXP_EWD               => 
-            Example::EWD(ew_frequency(matches), attacker_radius(matches)),
+            Example::EWD {
+                ew_frequency: ew_frequency(matches), 
+                ewd_area_radius: attacker_radius(matches)
+            },
         EXP_GPS_SPOOFING      => 
-            Example::GPSSpoofing(attacker_radius(matches)),
+            Example::GPSSpoofing { 
+                spoofer_area_radius: attacker_radius(matches) 
+            },
         EXP_MALWARE_INFECTION => 
-            Example::MalwareInfection(
-                malware(matches),
-                attacker_radius(matches),
-                display_malware_propagation(matches),
-            ), 
+            Example::MalwareInfection {
+                malware: malware(matches),
+                attacker_area_radius: attacker_radius(matches),
+                display_propagation: display_malware_propagation(matches),
+            }, 
         EXP_MOVEMENT          => Example::Movement,
         EXP_SIGNAL_LOSS       => Example::SignalLossResponse,
         _                     => return
