@@ -54,7 +54,7 @@ pub fn ewd(
     ew_frequency: Frequency,
     ewd_area_radius: Meter,
 ) {
-    let cc_tx_control_area_radius    = 200.0;
+    let cc_tx_control_area_radius    = 300.0;
     let drone_tx_control_area_radius = 50.0;
     let drone_gps_rx_signal_quality  = RED_SIGNAL_QUALITY; 
         
