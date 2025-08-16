@@ -232,12 +232,16 @@ impl<'a> PlottersRenderer<'a> {
         let device_primitives = network_model
             .device_map()
             .values()
-            .map(|device|
-                device_primitive(
-                    device, 
-                    self.device_coloring, 
-                    self.plot_resolution
-                )
+            .filter_map(|device|
+                if device.is_shut_down() {
+                    None
+                } else {
+                    Some(device_primitive(
+                        device, 
+                        self.device_coloring, 
+                        self.plot_resolution
+                    ))
+                }
             );
 
         chart_context
