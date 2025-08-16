@@ -4,7 +4,7 @@ use thiserror::Error;
 use crate::backend::mathphysics::{Frequency, Megahertz, Meter, Millisecond};
 use crate::backend::signal::{FreqToQualityMap, Signal, SignalQuality};
 
-pub use rx::{ReceivedSignal, RXError, RXModule};
+pub use rx::{SignalRecord, RXError, RXModule};
 pub use tx::{TXModule, TXModuleType};
 
 
@@ -85,7 +85,7 @@ impl TRXSystem {
     }
 
     #[must_use]
-    pub fn received_signals(&self) -> Vec<ReceivedSignal> {
+    pub fn received_signals(&self) -> Vec<SignalRecord> {
         self.rx_module.received_signals()
     }
     
@@ -93,7 +93,7 @@ impl TRXSystem {
     pub fn received_signal_on(
         &self, 
         frequency: &Frequency
-    ) -> Option<&ReceivedSignal> {
+    ) -> Option<&SignalRecord> {
         self.rx_module.received_signal_on(frequency)
     }
      

@@ -7,7 +7,7 @@ use crate::backend::signal::{Data, FreqToQualityMap, Signal, SignalQuality};
 
 // The first element - time at which a signal was received.
 // The second element - the signal.
-pub type ReceivedSignal = (Millisecond, Signal);
+pub type SignalRecord = (Millisecond, Signal);
 
 
 const RECEIVE_GREEN_SIGNAL: f64  = 0.95;
@@ -52,7 +52,7 @@ pub enum RXError {
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct RXModule {
     max_signal_quality_map: FreqToQualityMap,
-    received_signals: Vec<ReceivedSignal>,
+    received_signals: Vec<SignalRecord>,
 }
 
 impl RXModule {
@@ -75,7 +75,7 @@ impl RXModule {
     }
 
     #[must_use]
-    pub fn received_signals(&self) -> Vec<ReceivedSignal> {
+    pub fn received_signals(&self) -> Vec<SignalRecord> {
         self.received_signals.clone()
     }
 
@@ -83,7 +83,7 @@ impl RXModule {
     pub fn received_signal_on(
         &self, 
         frequency: &Frequency, 
-    ) -> Option<&ReceivedSignal> {
+    ) -> Option<&SignalRecord> {
         self.received_signals
             .iter()
             .find(|received_signal| received_signal.1.frequency() == *frequency)
