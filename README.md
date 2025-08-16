@@ -42,8 +42,6 @@ Options:
           Set attacker device area radius (non-negative float) ("ewd", "gpsspoof" and "malware" experiments)
       --mt <malware type>
           Choose malware type ("malware" experiment) [possible values: dos, indicator]
-      --display-propagation
-          Show malware propagation as well ("malware" experiment)
       --ji <json input path>
           Deserialize network model from `.json` file and use it ("custom" experiment)
       --jo <json directory output path>

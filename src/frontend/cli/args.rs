@@ -23,7 +23,6 @@ use crate::frontend::renderer::{
 
 pub const ARG_ATTACKER_RADIUS: &str  = "attacker device area radius";
 pub const ARG_DELAY_MULTIPLIER: &str = "delay multiplier";
-pub const ARG_DISPLAY_MALWARE_PROPAGATION: &str = "display malware propagation";
 pub const ARG_DRONE_COUNT: &str      = "drone count";
 pub const ARG_EXPERIMENT_TITLE: &str = "experiment title";
 pub const ARG_EW_FREQUENCY: &str     = "electronic warfare frequency";
@@ -96,7 +95,6 @@ pub fn handle_arguments(matches: &ArgMatches) {
             Example::MalwareInfection {
                 malware: malware(matches),
                 attacker_area_radius: attacker_radius(matches),
-                display_propagation: display_malware_propagation(matches),
             }, 
         EXP_MOVEMENT          => Example::Movement,
         EXP_SIGNAL_LOSS       => Example::SignalLossResponse,
@@ -156,7 +154,7 @@ fn input_model_path(matches: &ArgMatches) -> PathBuf {
     matches
         .get_one::<PathBuf>(ARG_JSON_INPUT)
         .unwrap()
-        .to_path_buf()
+        .clone()
 }
 
 fn ew_frequency(matches: &ArgMatches) -> Frequency {
@@ -239,13 +237,11 @@ fn malware(matches: &ArgMatches) -> Malware {
         _             => panic!("Wrong malware type"),
     };
 
-    let malware = Malware::new(
+    Malware::new(
         malware_type, 
         MALWARE_INFECTION_DELAY,
         MALWARE_SPREAD_DELAY
-    );
-
-    malware
+    )
 }
 
 fn json_output_directory(matches: &ArgMatches) -> Option<&Path> {
@@ -281,12 +277,6 @@ fn plot_resolution(matches: &ArgMatches) -> PlotResolution {
         .unwrap();
 
     PlotResolution::new(plot_width, plot_height)
-}
-
-fn display_malware_propagation(matches: &ArgMatches) -> bool {
-    *matches
-        .get_one::<bool>(ARG_DISPLAY_MALWARE_PROPAGATION)
-        .unwrap()
 }
 
 fn verbosity_level(matches: &ArgMatches) -> LevelFilter {

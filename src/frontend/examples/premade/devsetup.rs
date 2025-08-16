@@ -9,7 +9,7 @@ use crate::backend::device::systems::{
     MovementSystem, PowerSystem, RXModule, SecuritySystem, TRXSystem, TXModule, 
     TXModuleType
 };
-use crate::backend::malware::{Malware, MalwareType};
+use crate::backend::malware::Malware;
 use crate::backend::mathphysics::{
     Frequency, Megahertz, Meter, Point3D, PowerUnit
 };
@@ -18,7 +18,6 @@ use crate::backend::signal::{
     FreqToQualityMap, SignalQuality, GREEN_SIGNAL_QUALITY
 };
 use crate::backend::task::{Scenario, Task};
-use crate::frontend::{MALWARE_INFECTION_DELAY, MALWARE_SPREAD_DELAY};
 
 
 pub const DEVICE_MAX_POWER: PowerUnit = 100_000;
@@ -206,14 +205,6 @@ pub fn reposition_scenario() -> Scenario {
         (4000, BROADCAST_ID, task3),
         (6000, BROADCAST_ID, task4),
     ])
-}
-
-pub fn indicator_malware() -> Malware {
-    Malware::new(
-        MalwareType::Indicator, 
-        MALWARE_INFECTION_DELAY,
-        MALWARE_SPREAD_DELAY
-    )
 }
 
 

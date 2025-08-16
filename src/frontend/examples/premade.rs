@@ -1,6 +1,6 @@
 use crate::backend::connections::Topology;
 use crate::backend::device::{
-    Device, DeviceBuilder, SignalLossResponse, device_map_from_slice,
+    DeviceBuilder, SignalLossResponse, device_map_from_slice,
 };
 use crate::backend::device::systems::TXModuleType;
 use crate::backend::malware::{Malware, MalwareType};
@@ -20,8 +20,8 @@ use crate::frontend::renderer::{
 use devsetup::{
     attack_scenario, cc_trx_system, create_drone_vec, default_gps, 
     default_network_position, device_movement_system, device_power_system, 
-    drone_trx_system, ewd_trx_system, indicator_malware, reposition_scenario,
-    CC_POSITION, NETWORK_ORIGIN
+    drone_trx_system, ewd_trx_system, reposition_scenario, CC_POSITION, 
+    NETWORK_ORIGIN
 };
 
 
@@ -303,7 +303,6 @@ pub fn malware_infection(
     general_config: &GeneralConfig,
     malware: Malware,
     attacker_area_radius: Meter,
-    display_malware_propagation: bool
 ) {
     let cc_tx_control_area_radius    = 200.0;
     let drone_tx_control_area_radius = 15.0;
@@ -358,14 +357,6 @@ pub fn malware_infection(
         .set_topology(general_config.model_config().topology())
         .set_delay_multiplier(general_config.model_config().delay_multiplier());
     
-    if display_malware_propagation {
-        malware_propagation(
-            attacker,
-            drone_network_builder.clone(),
-            general_config,
-        );
-    }
-
     let drone_network = drone_network_builder
         .set_attacker_devices(attacker_devices)
         .build();
@@ -401,60 +392,6 @@ pub fn malware_infection(
                 axes_ranges,
                 drone_coloring,
                 camera_angle
-            )
-        });
-
-    let mut model_player = ModelPlayer::new(
-        general_config.model_player_config().json_output_directory(),
-        drone_network,
-        renderer,
-        general_config.model_player_config().simulation_time(),
-    );
-
-    model_player.play();
-}
-
-pub fn malware_propagation(
-    attacker: Device,
-    drone_network_builder: NetworkModelBuilder,
-    general_config: &GeneralConfig,
-) {
-    let malware = indicator_malware();
-    let attacker_devices = vec![
-        AttackerDevice::new(
-            attacker, 
-            AttackType::MalwareDistribution(malware)
-        )
-    ];
-
-    let drone_network = drone_network_builder
-        .set_attacker_devices(attacker_devices)
-        .build();
-
-    let renderer = general_config
-        .model_player_config()
-        .render_config()
-        .map(|render_config| { 
-            let output_filename = derive_filename(
-                general_config.model_config().tx_module_type(),
-                general_config.model_config().topology(), 
-                "mal_indicator",
-            );
-            let drone_coloring = DeviceColoring::Infection; 
-            let axes_ranges = Axes3DRanges::new(
-                0.0..100.0, 
-                0.0..0.0,
-                0.0..100.0
-            );
-            let camera_angle = CameraAngle::new(1.57, 1.57);
-
-            PlottersRenderer::new(
-                &output_filename,
-                render_config.plot_caption(),
-                render_config.plot_resolution(),
-                axes_ranges,
-                drone_coloring,
-                camera_angle,
             )
         });
 

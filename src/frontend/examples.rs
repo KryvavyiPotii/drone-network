@@ -32,7 +32,6 @@ pub enum Example {
     MalwareInfection {
         malware: Malware, 
         attacker_area_radius: Meter, 
-        display_propagation: bool
     },
     Movement,
     SignalLossResponse,
@@ -41,22 +40,17 @@ pub enum Example {
 impl Example {
     pub fn execute(&self, general_config: &GeneralConfig) {
         match self {
-            Self::Custom(json_path)                                           => 
+            Self::Custom(json_path)                                   => 
                 custom(json_path, general_config.model_player_config()),
-            Self::EWD { ew_frequency, ewd_area_radius }                       => 
+            Self::EWD { ew_frequency, ewd_area_radius }               => 
                 ewd(general_config, *ew_frequency, *ewd_area_radius),
-            Self::GPSSpoofing { spoofer_area_radius }                         => 
+            Self::GPSSpoofing { spoofer_area_radius }                 => 
                 gps_spoofing(general_config, *spoofer_area_radius),
-            Self::MalwareInfection {
-                malware, 
-                attacker_area_radius, 
-                display_propagation
-            } => 
+            Self::MalwareInfection { malware, attacker_area_radius, } => 
                 malware_infection(
                     general_config, 
                     *malware,
                     *attacker_area_radius,
-                    *display_propagation
                 ),
             Self::Movement           => movement(general_config),
             Self::SignalLossResponse => signal_loss_response(general_config),

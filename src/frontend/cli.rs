@@ -6,11 +6,11 @@ use crate::backend::mathphysics::Millisecond;
 use crate::frontend::renderer::Pixel;
 
 use args::{
-    handle_arguments, ARG_DELAY_MULTIPLIER, ARG_DISPLAY_MALWARE_PROPAGATION, 
-    ARG_DRONE_COUNT, ARG_EXPERIMENT_TITLE, ARG_EW_FREQUENCY, 
-    ARG_ATTACKER_RADIUS, ARG_JSON_INPUT, ARG_MALWARE_TYPE, ARG_NO_PLOT, 
-    ARG_NETWORK_TOPOLOGY, ARG_JSON_OUTPUT, ARG_PLOT_CAPTION, ARG_PLOT_HEIGHT, 
-    ARG_PLOT_WIDTH, ARG_SIG_LOSS_RESP, ARG_SIM_TIME, ARG_TX_MODULE, ARG_VERBOSE, 
+    handle_arguments, ARG_DELAY_MULTIPLIER, ARG_DRONE_COUNT, 
+    ARG_EXPERIMENT_TITLE, ARG_EW_FREQUENCY, ARG_ATTACKER_RADIUS, 
+    ARG_JSON_INPUT, ARG_MALWARE_TYPE, ARG_NO_PLOT, ARG_NETWORK_TOPOLOGY, 
+    ARG_JSON_OUTPUT, ARG_PLOT_CAPTION, ARG_PLOT_HEIGHT, ARG_PLOT_WIDTH, 
+    ARG_SIG_LOSS_RESP, ARG_SIM_TIME, ARG_TX_MODULE, ARG_VERBOSE, 
     DEFAULT_DELAY_MULTIPLIER, DEFAULT_DRONE_COUNT, DEFAULT_PLOT_CAPTION, 
     DEFAULT_PLOT_HEIGHT, DEFAULT_PLOT_WIDTH, DEFAULT_SIM_TIME, EXP_CUSTOM, 
     EXP_EWD, EXP_GPS_SPOOFING, EXP_MALWARE_INFECTION, EXP_MOVEMENT, 
@@ -38,7 +38,6 @@ pub fn cli() {
             arg_ew_frequency(),
             arg_attacker_radius(),
             arg_malware_type(),
-            arg_display_malware_propagation(),
             arg_json_input(),
             arg_json_output(),
             arg_no_plot(),
@@ -171,18 +170,6 @@ fn arg_delay_multiplier() -> Arg {
         )
 }
 
-fn arg_display_malware_propagation() -> Arg {
-    Arg::new(ARG_DISPLAY_MALWARE_PROPAGATION)
-        .long("display-propagation")
-        .action(ArgAction::SetTrue)
-        .help(
-            format!(
-                "Show malware propagation as well \
-                (\"{EXP_MALWARE_INFECTION}\" experiment)" 
-            )
-        )
-}
-
 fn arg_malware_type() -> Arg {
     Arg::new(ARG_MALWARE_TYPE)
         .long("mt")
@@ -200,7 +187,6 @@ fn arg_json_input() -> Arg {
         .value_parser(value_parser!(PathBuf))
         .conflicts_with_all([
             ARG_DELAY_MULTIPLIER,
-            ARG_DISPLAY_MALWARE_PROPAGATION,
             ARG_DRONE_COUNT,
             ARG_MALWARE_TYPE,
             ARG_NETWORK_TOPOLOGY,
