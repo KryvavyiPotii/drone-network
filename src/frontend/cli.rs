@@ -190,6 +190,7 @@ fn arg_json_input() -> Arg {
             ARG_DRONE_COUNT,
             ARG_MALWARE_TYPE,
             ARG_NETWORK_TOPOLOGY,
+            ARG_SIG_LOSS_RESP,
             ARG_TX_MODULE,
         ])
         .help(
