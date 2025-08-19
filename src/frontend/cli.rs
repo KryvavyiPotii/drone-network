@@ -3,20 +3,20 @@ use std::path::PathBuf;
 use clap::{Arg, ArgAction, Command, value_parser};
 
 use crate::backend::mathphysics::Millisecond;
-use crate::frontend::renderer::Pixel;
+use crate::frontend::renderer::{Pixel, PlottersUnit};
 
 use args::{
-    handle_arguments, ARG_DELAY_MULTIPLIER, ARG_DRONE_COUNT, 
-    ARG_EXPERIMENT_TITLE, ARG_EW_FREQUENCY, ARG_ATTACKER_RADIUS, 
-    ARG_JSON_INPUT, ARG_MALWARE_TYPE, ARG_NO_PLOT, ARG_NETWORK_TOPOLOGY, 
-    ARG_JSON_OUTPUT, ARG_PLOT_CAPTION, ARG_PLOT_HEIGHT, ARG_PLOT_WIDTH, 
-    ARG_SIG_LOSS_RESP, ARG_SIM_TIME, ARG_TX_MODULE, ARG_VERBOSE, 
-    DEFAULT_DELAY_MULTIPLIER, DEFAULT_DRONE_COUNT, DEFAULT_PLOT_CAPTION, 
-    DEFAULT_PLOT_HEIGHT, DEFAULT_PLOT_WIDTH, DEFAULT_SIM_TIME, EXP_CUSTOM, 
-    EXP_EWD, EXP_GPS_SPOOFING, EXP_MALWARE_INFECTION, EXP_MOVEMENT, 
-    EXP_SIGNAL_LOSS, EW_CONTROL, EW_GPS, MAL_DOS, MAL_INDICATOR, SLR_ASCEND, 
-    SLR_IGNORE, SLR_HOVER, SLR_RTH, SLR_SHUTDOWN, TOPOLOGY_MESH, TOPOLOGY_STAR, 
-    TX_LEVEL, TX_STRENGTH
+    handle_arguments, ARG_CAMERA_PITCH, ARG_CAMERA_YAW, ARG_DELAY_MULTIPLIER, 
+    ARG_DRONE_COUNT, ARG_EXPERIMENT_TITLE, ARG_EW_FREQUENCY, 
+    ARG_ATTACKER_RADIUS, ARG_JSON_INPUT, ARG_MALWARE_TYPE, ARG_NO_PLOT, 
+    ARG_NETWORK_TOPOLOGY, ARG_JSON_OUTPUT, ARG_PLOT_CAPTION, ARG_PLOT_HEIGHT, 
+    ARG_PLOT_WIDTH, ARG_SIG_LOSS_RESP, ARG_SIM_TIME, ARG_TX_MODULE, ARG_VERBOSE, 
+    DEFAULT_CAMERA_PITCH, DEFAULT_CAMERA_YAW, DEFAULT_DELAY_MULTIPLIER, 
+    DEFAULT_DRONE_COUNT, DEFAULT_PLOT_CAPTION, DEFAULT_PLOT_HEIGHT, 
+    DEFAULT_PLOT_WIDTH, DEFAULT_SIM_TIME, EXP_CUSTOM, EXP_EWD, EXP_GPS_SPOOFING, 
+    EXP_MALWARE_INFECTION, EXP_MOVEMENT, EXP_SIGNAL_LOSS, EW_CONTROL, EW_GPS, 
+    MAL_DOS, MAL_INDICATOR, SLR_ASCEND, SLR_IGNORE, SLR_HOVER, SLR_RTH, 
+    SLR_SHUTDOWN, TOPOLOGY_MESH, TOPOLOGY_STAR, TX_LEVEL, TX_STRENGTH
 };
 
 
@@ -44,6 +44,8 @@ pub fn cli() {
             arg_plot_caption(),
             arg_plot_width(),
             arg_plot_height(),
+            arg_camera_pitch(),
+            arg_camera_yaw(),
             arg_verbose(),
         ])
         .arg_required_else_help(true)
@@ -55,7 +57,6 @@ pub fn cli() {
 fn arg_experiment_title() -> Arg {
     Arg::new(ARG_EXPERIMENT_TITLE)
         .short('x')
-        .long("experiment")
         .requires_ifs([
             (EXP_CUSTOM, ARG_JSON_INPUT),
             (EXP_MALWARE_INFECTION, ARG_MALWARE_TYPE),
@@ -133,7 +134,7 @@ fn arg_simulation_time() -> Arg {
 
 fn arg_ew_frequency() -> Arg {
     Arg::new(ARG_EW_FREQUENCY)
-        .long("ew-freq")
+        .long("ewf")
         .value_parser([EW_CONTROL, EW_GPS])
         .required_if_eq(ARG_EXPERIMENT_TITLE, EXP_EWD)
         .help(format!("Choose EW frequency (\"{EXP_EWD}\" experiment)"))
@@ -141,7 +142,7 @@ fn arg_ew_frequency() -> Arg {
 
 fn arg_attacker_radius() -> Arg {
     Arg::new(ARG_ATTACKER_RADIUS)
-        .long("attacker-radius")
+        .long("ar")
         .value_parser(value_parser!(f32))
         .required_if_eq_any([
             (ARG_EXPERIMENT_TITLE, EXP_EWD),
@@ -159,8 +160,7 @@ fn arg_attacker_radius() -> Arg {
 
 fn arg_delay_multiplier() -> Arg {
     Arg::new(ARG_DELAY_MULTIPLIER)
-        .short('d')
-        .long("delay-multiplier")
+        .long("dm")
         .value_parser(value_parser!(f32))
         .default_value(DEFAULT_DELAY_MULTIPLIER)
         .help(
@@ -227,7 +227,7 @@ fn arg_plot_caption() -> Arg {
 
 fn arg_plot_width() -> Arg {
     Arg::new(ARG_PLOT_WIDTH)
-        .long("width")
+        .long("pw")
         .requires(ARG_PLOT_HEIGHT)
         .value_parser(value_parser!(Pixel))
         .default_value(DEFAULT_PLOT_WIDTH)
@@ -236,11 +236,29 @@ fn arg_plot_width() -> Arg {
 
 fn arg_plot_height() -> Arg {
     Arg::new(ARG_PLOT_HEIGHT)
-        .long("height")
+        .long("ph")
         .requires(ARG_PLOT_WIDTH)
         .value_parser(value_parser!(Pixel))
         .default_value(DEFAULT_PLOT_HEIGHT)
         .help("Set the plot height (in pixels)")
+}
+
+fn arg_camera_pitch() -> Arg {
+    Arg::new(ARG_CAMERA_PITCH)
+        .long("cp")
+        .requires(ARG_CAMERA_YAW)
+        .value_parser(value_parser!(PlottersUnit))
+        .default_value(DEFAULT_CAMERA_PITCH)
+        .help("Set camera pitch (in radians)")
+}
+
+fn arg_camera_yaw() -> Arg {
+    Arg::new(ARG_CAMERA_YAW)
+        .long("cy")
+        .requires(ARG_CAMERA_PITCH)
+        .value_parser(value_parser!(PlottersUnit))
+        .default_value(DEFAULT_CAMERA_YAW)
+        .help("Set camera yaw (in radians)")
 }
 
 fn arg_verbose() -> Arg {

@@ -9,10 +9,6 @@ pub const DEFAULT_AXES_RANGE: Axes3DRanges = Axes3DRanges {
     y: 0.0..200.0,
     z: 0.0..200.0,
 };
-pub const DEFAULT_CAMERA_ANGLE: CameraAngle = CameraAngle {
-    pitch: 0.15,
-    yaw: 0.5
-};
 pub const DEFAULT_DEVICE_COLORING: DeviceColoring = DeviceColoring::SingleColor(
     0, 0, 0
 );
@@ -20,8 +16,8 @@ pub const DEFAULT_DEVICE_COLORING: DeviceColoring = DeviceColoring::SingleColor(
 const METERS_TO_PIXELS_SCALE_COEF: PlottersUnit = 400.0;
 
 
-pub type Pixel         = u32;
-pub type PlottersUnit  = f64;
+pub type Pixel        = u32;
+pub type PlottersUnit = f64;
 
 
 #[must_use]

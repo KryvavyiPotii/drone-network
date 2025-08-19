@@ -14,7 +14,7 @@ use crate::frontend::config::GeneralConfig;
 use crate::frontend::player::ModelPlayer;
 use crate::frontend::renderer::{
     Axes3DRanges, CameraAngle, DeviceColoring, PlottersRenderer, 
-    DEFAULT_AXES_RANGE, DEFAULT_CAMERA_ANGLE, DEFAULT_DEVICE_COLORING
+    DEFAULT_AXES_RANGE, DEFAULT_DEVICE_COLORING
 };
 
 use devsetup::{
@@ -123,7 +123,7 @@ pub fn ewd(
                 render_config.plot_resolution(),
                 DEFAULT_AXES_RANGE,
                 DEFAULT_DEVICE_COLORING,
-                DEFAULT_CAMERA_ANGLE,
+                render_config.camera_angle(),
             )
         });
 
@@ -191,7 +191,7 @@ pub fn movement(general_config: &GeneralConfig) {
                 render_config.plot_resolution(),
                 DEFAULT_AXES_RANGE,
                 DEFAULT_DEVICE_COLORING,
-                DEFAULT_CAMERA_ANGLE,
+                render_config.camera_angle(),
             )
         });
 
@@ -513,7 +513,7 @@ pub fn signal_loss_response(general_config: &GeneralConfig) {
                 render_config.plot_resolution(),
                 axes_ranges,
                 DEFAULT_DEVICE_COLORING,
-                DEFAULT_CAMERA_ANGLE,
+                render_config.camera_angle(),
             )
         });
     

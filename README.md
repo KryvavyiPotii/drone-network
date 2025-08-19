@@ -22,23 +22,21 @@ Models drone networks.
 Usage: drone_network-x64-linux [OPTIONS] --slr <control signal loss response>
 
 Options:
-  -x, --experiment <experiment title>
+  -x <experiment title>
           Choose experiment title [possible values: custom, ewd, gpsspoof, malware, move, signalloss]
       --tx <tx module type>
-          Choose TX system type [possible values: level, strength]
+          Choose TX system type [possible values: lvl, str]
       --slr <control signal loss response>
-          Choose control signal loss response (except "signalloss" experiment) [default: ignore] [possible values: ascend, ignore, hover, rth, shutdown]
+          Choose control signal loss response (except "signalloss" experiment) [possible values: ascend, ignore, hover, rth, shutdown]
       --topology <network topology>
           Choose network topology [possible values: mesh, star]
   -n <drone count>
           Set the number of drones in the network (non-negative integer) [default: 100]
-      --time <simulation time>
-          Set the simulation time (non-negative integer, in millis) [default: 15000]
-  -d, --delay-multiplier <delay multiplier>
+      --dm <delay multiplier>
           Set signal transmission delay multiplier (non-negative float) [default: 0.0]
-      --ew-freq <electronic warfare frequency>
+      --ewf <electronic warfare frequency>
           Choose EW frequency ("ewd" experiment) [possible values: control, gps]
-      --attacker-radius <attacker device area radius>
+      --ar <attacker device area radius>
           Set attacker device area radius (non-negative float) ("ewd", "gpsspoof" and "malware" experiments)
       --mt <malware type>
           Choose malware type ("malware" experiment) [possible values: dos, indicator]
@@ -46,14 +44,20 @@ Options:
           Deserialize network model from `.json` file and use it ("custom" experiment)
       --jo <json directory output path>
           Serialize network model data on each iteration to `.json` files in specified directory
+      --time <simulation time>
+          Set the simulation time (non-negative integer, in millis) [default: 15000]
       --no-plot
           Do not render a GIF plot
   -c, --caption <plot caption>
           Set the plot caption [default: ]
-      --width <plot width>
+      --pw <plot width>
           Set the plot width (in pixels) [default: 400]
-      --height <plot height>
+      --ph <plot height>
           Set the plot height (in pixels) [default: 300]
+      --cp <camera pitch>
+          Set camera pitch (in radians) [default: 0.15]
+      --cy <camera yaw>
+          Set camera yaw (in radians) [default: 0.5]
   -v, --verbose
           Show full log output
   -h, --help

@@ -91,7 +91,7 @@ fn device_color(
             color_by_infection(device.is_infected()),
         DeviceColoring::ControlConnection    => 
             color_by_signal_quality(
-                &device_control_signal_quality(network_model, device)
+                device_control_signal_quality(network_model, device)
             ),
         DeviceColoring::SingleColor(r, g, b) => RGBColor(r, g, b),
     }

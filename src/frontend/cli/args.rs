@@ -16,12 +16,14 @@ use crate::frontend::config::{
 };
 use crate::frontend::examples::{Example, DEVICE_MAX_POWER};
 use crate::frontend::renderer::{
-    Pixel, PlotResolution, DEFAULT_AXES_RANGE,
-    DEFAULT_CAMERA_ANGLE, DEFAULT_DEVICE_COLORING
+    CameraAngle, Pixel, PlottersUnit, PlotResolution, DEFAULT_AXES_RANGE, 
+    DEFAULT_DEVICE_COLORING
 };
 
 
 pub const ARG_ATTACKER_RADIUS: &str  = "attacker device area radius";
+pub const ARG_CAMERA_PITCH: &str     = "camera pitch";
+pub const ARG_CAMERA_YAW: &str       = "camera yaw";
 pub const ARG_DELAY_MULTIPLIER: &str = "delay multiplier";
 pub const ARG_DRONE_COUNT: &str      = "drone count";
 pub const ARG_EXPERIMENT_TITLE: &str = "experiment title";
@@ -61,9 +63,11 @@ pub const SLR_SHUTDOWN: &str = "shutdown";
 pub const TOPOLOGY_MESH: &str = "mesh";
 pub const TOPOLOGY_STAR: &str = "star";
 
-pub const TX_LEVEL: &str    = "level";
-pub const TX_STRENGTH: &str = "strength";
+pub const TX_LEVEL: &str    = "lvl";
+pub const TX_STRENGTH: &str = "str";
 
+pub const DEFAULT_CAMERA_PITCH: &str     = "0.15";
+pub const DEFAULT_CAMERA_YAW: &str       = "0.5";
 pub const DEFAULT_DELAY_MULTIPLIER: &str = "0.0";
 pub const DEFAULT_DRONE_COUNT: &str      = "100";
 pub const DEFAULT_PLOT_CAPTION: &str     = "";
@@ -145,7 +149,7 @@ fn render_config(matches: &ArgMatches) -> RenderConfig {
         plot_caption(matches), 
         plot_resolution(matches), 
         DEFAULT_AXES_RANGE,
-        DEFAULT_CAMERA_ANGLE,
+        camera_angle(matches), 
         DEFAULT_DEVICE_COLORING,
     )
 }
@@ -277,6 +281,17 @@ fn plot_resolution(matches: &ArgMatches) -> PlotResolution {
         .unwrap();
 
     PlotResolution::new(plot_width, plot_height)
+}
+
+fn camera_angle(matches: &ArgMatches) -> CameraAngle {
+    let camera_pitch = *matches
+        .get_one::<PlottersUnit>(ARG_CAMERA_PITCH)
+        .unwrap();
+    let camera_yaw = *matches
+        .get_one::<PlottersUnit>(ARG_CAMERA_YAW)
+        .unwrap();
+
+    CameraAngle::new(camera_pitch, camera_yaw)
 }
 
 fn verbosity_level(matches: &ArgMatches) -> LevelFilter {
