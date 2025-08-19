@@ -149,6 +149,7 @@ impl From<PlotResolution> for (Pixel, Pixel) {
 #[derive(Clone, Copy)]
 pub enum DeviceColoring {
     Infection,
+    ControlConnection,
     SingleColor(u8, u8, u8),
 }
 

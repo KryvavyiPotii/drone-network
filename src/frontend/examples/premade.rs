@@ -305,7 +305,7 @@ pub fn malware_infection(
     attacker_area_radius: Meter,
 ) {
     let cc_tx_control_area_radius    = 200.0;
-    let drone_tx_control_area_radius = 15.0;
+    let drone_tx_control_area_radius = 30.0;
     let drone_gps_rx_signal_quality  = GREEN_SIGNAL_QUALITY; 
 
     let command_center = DeviceBuilder::new()
@@ -375,7 +375,7 @@ pub fn malware_infection(
                 text,
             );
             let drone_coloring = match malware.malware_type() {
-                MalwareType::DoS(_)    => DeviceColoring::SingleColor(0, 0, 0),
+                MalwareType::DoS(_)    => DeviceColoring::ControlConnection,
                 MalwareType::Indicator => DeviceColoring::Infection,
             };
             let axes_ranges = Axes3DRanges::new(

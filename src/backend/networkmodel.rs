@@ -149,6 +149,11 @@ impl NetworkModel {
     }
     
     #[must_use]
+    pub fn command_device_id(&self) -> DeviceId {
+        self.command_device_id
+    }
+    
+    #[must_use]
     pub fn command_device(&self) -> Option<&Device> {
         self.device_map.get(&self.command_device_id)
     }

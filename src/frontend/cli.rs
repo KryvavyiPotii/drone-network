@@ -33,13 +33,13 @@ pub fn cli() {
             arg_signal_loss_response(),
             arg_topology(),
             arg_drone_count(),
-            arg_simulation_time(),
             arg_delay_multiplier(),
             arg_ew_frequency(),
             arg_attacker_radius(),
             arg_malware_type(),
             arg_json_input(),
             arg_json_output(),
+            arg_simulation_time(),
             arg_no_plot(),
             arg_plot_caption(),
             arg_plot_width(),
@@ -91,7 +91,6 @@ fn arg_signal_loss_response() -> Arg {
         .value_parser(
             [SLR_ASCEND, SLR_IGNORE, SLR_HOVER, SLR_RTH, SLR_SHUTDOWN]
         )
-        .default_value(SLR_IGNORE)
         .required(true)
         .conflicts_with(EXP_SIGNAL_LOSS)
         .help(

@@ -2,7 +2,9 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::backend::mathphysics::{Frequency, Millisecond};
-use crate::backend::signal::{Data, FreqToQualityMap, Signal, SignalQuality};
+use crate::backend::signal::{
+    Data, FreqToQualityMap, Signal, SignalLevel, SignalQuality
+};
 
 
 // The first element - time at which a signal was received.
@@ -23,14 +25,11 @@ fn signal_reached_rx(signal_quality: SignalQuality) -> bool {
 }
 
 fn signal_reach_rx_probability(signal_quality: SignalQuality) -> f64 {
-    if signal_quality.is_green() {
-        RECEIVE_GREEN_SIGNAL
-    } else if signal_quality.is_yellow() {
-        RECEIVE_YELLOW_SIGNAL
-    } else if signal_quality.is_red() {
-        RECEIVE_RED_SIGNAL
-    } else {
-        RECEIVE_BLACK_SIGNAL
+    match signal_quality.level() {
+        SignalLevel::Green  => RECEIVE_GREEN_SIGNAL,
+        SignalLevel::Yellow => RECEIVE_YELLOW_SIGNAL,
+        SignalLevel::Red    => RECEIVE_RED_SIGNAL,
+        SignalLevel::Black  => RECEIVE_BLACK_SIGNAL,
     }
 }
 

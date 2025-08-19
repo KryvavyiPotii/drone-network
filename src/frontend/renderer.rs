@@ -237,6 +237,7 @@ impl<'a> PlottersRenderer<'a> {
                     None
                 } else {
                     Some(device_primitive(
+                        network_model,
                         device, 
                         self.device_coloring, 
                         self.plot_resolution

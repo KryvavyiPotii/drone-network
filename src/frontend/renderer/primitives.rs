@@ -1,11 +1,13 @@
-use full_palette::{ORANGE, PINK_300, PINK_200};
+use full_palette::{GREEN_400, ORANGE, PINK_300, PINK_200, RED_400, YELLOW_700};
 use plotters::prelude::*;
 use plotters::style::RGBColor;
 
 use crate::backend::DESTINATION_RADIUS;
 use crate::backend::device::Device;
 use crate::backend::mathphysics::{Frequency, Meter, Point3D, Position};
+use crate::backend::networkmodel::NetworkModel;
 use crate::backend::networkmodel::attack::{AttackerDevice, AttackType};
+use crate::backend::signal::{SignalLevel, SignalQuality, BLACK_SIGNAL_QUALITY};
 
 use super::{
     DeviceColoring, Pixel, PlottersUnit, PlottersPoint3D, PlotResolution, 
@@ -22,6 +24,18 @@ const PLOTTERS_COMMAND_CENTER_COLOR: RGBColor = GREEN;
 
 
 type PlottersCircle = Circle<(PlottersUnit, PlottersUnit, PlottersUnit), Pixel>; 
+
+
+fn min_signal_quality(
+    signal_quality1: SignalQuality,
+    signal_quality2: SignalQuality
+) -> SignalQuality {
+    if signal_quality1 < signal_quality2 {
+        signal_quality1
+    } else {
+        signal_quality2
+    }
+}
 
 
 #[must_use]
@@ -54,26 +68,32 @@ pub fn command_device_primitive(
 
 #[must_use]
 pub fn device_primitive(
+    network_model: &NetworkModel,
     device: &Device,
     coloring: DeviceColoring,
     plot_resolution: PlotResolution
 ) -> PlottersCircle {
     let point = PlottersPoint3D::from(device.position());
-    let color = device_color(device, coloring);
+    let color = device_color(network_model, device, coloring);
     let size  = device_size(plot_resolution); 
     let style = Into::<ShapeStyle>::into(color).filled();
 
     Circle::new(point.into(), size, style)
 }
 
-fn device_color(device: &Device, coloring: DeviceColoring) -> RGBColor {
+fn device_color(
+    network_model: &NetworkModel, 
+    device: &Device,
+    coloring: DeviceColoring
+) -> RGBColor {
     match coloring {
-        DeviceColoring::Infection            => {
-            color_by_infection(device.is_infected())
-        },
-        DeviceColoring::SingleColor(r, g, b) => {
-            RGBColor(r, g, b)
-        }
+        DeviceColoring::Infection            => 
+            color_by_infection(device.is_infected()),
+        DeviceColoring::ControlConnection    => 
+            color_by_signal_quality(
+                &device_control_signal_quality(network_model, device)
+            ),
+        DeviceColoring::SingleColor(r, g, b) => RGBColor(r, g, b),
     }
 }
 
@@ -82,6 +102,59 @@ fn color_by_infection(infected: bool) -> RGBColor {
         PINK_200
     } else {
         BLACK
+    }
+}
+
+fn device_control_signal_quality(
+    network_model: &NetworkModel,
+    device: &Device,
+) -> SignalQuality {
+    let Ok((_, path)) = network_model
+        .connections()
+        .find_shortest_path_from_to(
+            network_model.command_device_id(), 
+            device.id()
+        )
+    else {
+        return BLACK_SIGNAL_QUALITY;
+    };
+
+    let Some((_, mut min_control_signal_quality)) = network_model
+        .connections()
+        .graph_map()
+        .edge_weight(path[0], path[1])
+        .copied()
+    else {
+        return BLACK_SIGNAL_QUALITY;
+    };
+
+    for i in 2..path.len() {
+        let tx_id = path[i - 1];
+        let rx_id = path[i];
+        
+        let Some((_, control_signal_quality)) = network_model
+            .connections()
+            .graph_map()
+            .edge_weight(tx_id, rx_id)
+        else {
+            break;
+        };
+
+        min_control_signal_quality = min_signal_quality(
+            min_control_signal_quality,
+            *control_signal_quality,
+        );
+    }
+
+    min_control_signal_quality
+}
+
+fn color_by_signal_quality(signal_quality: SignalQuality) -> RGBColor {
+    match signal_quality.level() {
+        SignalLevel::Green  => GREEN_400,
+        SignalLevel::Yellow => YELLOW_700,
+        SignalLevel::Red    => RED_400,
+        SignalLevel::Black  => BLACK,
     }
 }
 

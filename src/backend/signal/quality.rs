@@ -31,8 +31,8 @@ pub const GREEN_SIGNAL_QUALITY: SignalQuality  = SignalQuality {
     level: SignalLevel::Green,
 };
 
-const YELLOW_SIGNAL_ZONE_COEFFICIENT: f32 = 0.2;
-const GREEN_SIGNAL_ZONE_COEFFICIENT: f32  = 0.1;
+const YELLOW_SIGNAL_ZONE_COEFFICIENT: f32 = 0.5;
+const GREEN_SIGNAL_ZONE_COEFFICIENT: f32  = 0.2;
 
 
 #[derive(
@@ -93,23 +93,18 @@ impl SignalQuality {
     }
 
     #[must_use]
+    pub fn strength(&self) -> &SignalStrength {
+        &self.strength
+    }
+    
+    #[must_use]
+    pub fn level(&self) -> &SignalLevel {
+        &self.level
+    }
+    
+    #[must_use]
     pub fn is_black(&self) -> bool {
         matches!(self.level, SignalLevel::Black)
-    }
-    
-    #[must_use]
-    pub fn is_red(&self) -> bool {
-        matches!(self.level, SignalLevel::Red)
-    }
-    
-    #[must_use]
-    pub fn is_yellow(&self) -> bool {
-        matches!(self.level, SignalLevel::Yellow)
-    }
-
-    #[must_use]
-    pub fn is_green(&self) -> bool {
-        matches!(self.level, SignalLevel::Green)
     }
 }
 
