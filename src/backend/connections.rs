@@ -15,12 +15,12 @@ use super::device::{
     Device, DeviceId, IdToDelayMap, IdToDeviceMap, BROADCAST_ID
 };
 use super::mathphysics::{delay_to, Frequency, Meter, Position};
-use super::signal::SignalQuality;
+use super::signal::SignalStrength;
 
 
-type Connection<'a> = (DeviceId, DeviceId, &'a (Meter, SignalQuality));
-type SerdeEdge      = (DeviceId, DeviceId, (Meter, SignalQuality));
-type ConnectionMap  = GraphMap<DeviceId, (Meter, SignalQuality), Directed>;
+type Connection<'a> = (DeviceId, DeviceId, &'a (Meter, SignalStrength));
+type SerdeEdge      = (DeviceId, DeviceId, (Meter, SignalStrength));
+type ConnectionMap  = GraphMap<DeviceId, (Meter, SignalStrength), Directed>;
 
 
 #[derive(Error, Debug)]
@@ -116,18 +116,18 @@ impl ConnectionGraph {
         device2: &Device,
         distance: Meter,
     ) {
-        if let Some(tx_signal_quality_from_1) = device1.tx_signal_quality_at(
+        if let Some(tx_signal_strength_from_1) = device1.tx_signal_strength_at(
             device2, 
             Frequency::Control
         ) {
-            if tx_signal_quality_from_1.is_black() {
+            if tx_signal_strength_from_1.is_black() {
                 return;
             }
 
             self.graph_map.add_edge(
                 device1.id(), 
                 device2.id(), 
-                (distance, tx_signal_quality_from_1)
+                (distance, tx_signal_strength_from_1)
             );
         }
     }
@@ -364,11 +364,11 @@ impl<'de> Deserialize<'de> for ConnectionGraph {
 mod tests {
     use crate::backend::device::{Device, DeviceBuilder, device_map_from_slice};
     use crate::backend::device::systems::{
-        PowerSystem, RXModule, TRXSystem, TXModule, TXModuleType
+        PowerSystem, RXModule, TRXSystem, TXModule, 
     };
     use crate::backend::mathphysics::{Megahertz, Point3D, PowerUnit};
     use crate::backend::signal::{
-        FreqToQualityMap, GREEN_SIGNAL_QUALITY, SignalQuality
+        FreqToStrengthMap, GREEN_SIGNAL_STRENGTH, SignalStrength
     };
     
     use super::*;
@@ -392,20 +392,20 @@ mod tests {
     }
 
     fn control_tx_module(radius: Meter) -> TXModule {
-        let tx_signal_quality  = SignalQuality::from_area_radius(
+        let tx_signal_strength  = SignalStrength::from_area_radius(
             radius,
             Frequency::Control as Megahertz
         );
-        let tx_signal_qualities = FreqToQualityMap::from([
-            (Frequency::Control, tx_signal_quality)
+        let tx_signal_qualities = FreqToStrengthMap::from([
+            (Frequency::Control, tx_signal_strength)
         ]);
 
-        TXModule::new(TXModuleType::Strength, tx_signal_qualities)
+        TXModule::new(tx_signal_qualities)
     }
     
     fn rx_module() -> RXModule {
-        let max_rx_signal_qualities = FreqToQualityMap::from([
-            (Frequency::Control, GREEN_SIGNAL_QUALITY)
+        let max_rx_signal_qualities = FreqToStrengthMap::from([
+            (Frequency::Control, GREEN_SIGNAL_STRENGTH)
         ]);
 
         RXModule::new(max_rx_signal_qualities)

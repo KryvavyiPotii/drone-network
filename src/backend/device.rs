@@ -9,7 +9,7 @@ use super::mathphysics::{
     Millisecond, Point3D, Position, PowerUnit
 };
 use super::signal::{
-    Data, FreqToQualityMap, Signal, SignalQuality, BLACK_SIGNAL_QUALITY, 
+    Data, FreqToStrengthMap, Signal, SignalStrength, BLACK_SIGNAL_STRENGTH, 
 };
 use super::task::Task;
 
@@ -220,16 +220,16 @@ impl Device {
     }
 
     #[must_use]
-    pub fn tx_signal_quality_map(&self) -> &FreqToQualityMap {
-        self.trx_system.tx_signal_quality_map()
+    pub fn tx_signal_strength_map(&self) -> &FreqToStrengthMap {
+        self.trx_system.tx_signal_strength_map()
     }
     
     #[must_use]
-    pub fn tx_signal_quality_on(
+    pub fn tx_signal_strength_on(
         &self, 
         frequency: &Frequency
-    ) -> Option<&SignalQuality> {
-        self.trx_system.tx_signal_quality_on(frequency)
+    ) -> Option<&SignalStrength> {
+        self.trx_system.tx_signal_strength_on(frequency)
     }
     
     #[must_use]
@@ -247,14 +247,14 @@ impl Device {
     }
 
     #[must_use]
-    pub fn tx_signal_quality_at<P: Position>(
+    pub fn tx_signal_strength_at<P: Position>(
         &self,
         receiver: &P,
         frequency: Frequency
-    ) -> Option<SignalQuality> {
+    ) -> Option<SignalStrength> {
         let distance_to_rx = self.distance_to(receiver);
 
-        self.trx_system.tx_signal_quality_at(distance_to_rx, frequency)
+        self.trx_system.tx_signal_strength_at(distance_to_rx, frequency)
     }
 
     /// # Errors
@@ -266,12 +266,12 @@ impl Device {
         data: Data,
         frequency: Frequency,
     ) -> Result<Signal, TRXSystemError> {
-        let signal_quality = self.tx_signal_quality_at(
+        let signal_strength = self.tx_signal_strength_at(
             receiver, 
             frequency
         ).ok_or(TRXSystemError::RXOutOfRange)?;
 
-        if signal_quality.is_black() {
+        if signal_strength.is_black() {
             return Err(TRXSystemError::RXOutOfRange);
         }
 
@@ -280,7 +280,7 @@ impl Device {
             receiver.id(),
             data,
             frequency, 
-            signal_quality,
+            signal_strength,
         );
 
         self.trace_created_signal_for(receiver.id());
@@ -340,7 +340,7 @@ impl Device {
     /// Will return `Err` if all power is consumed or the movement system is
     /// disabled.
     pub fn update(&mut self) -> Result<(), DeviceError> {
-        self.trace_control_signal_quality();
+        self.trace_control_signal_strength();
 
         self.try_consume_power(PASSIVE_POWER_CONSUMPTION)?;
         self.handle_malware_infections();
@@ -524,14 +524,14 @@ impl Device {
     }
 
 
-    fn trace_control_signal_quality(&self) {
+    fn trace_control_signal_strength(&self) {
         trace!(
-            "Current time: {}, Id: {}, Control signal quality: {}",
+            "Current time: {}, Id: {}, Control signal strength: {}",
             self.current_time,
             self.id,
             self.trx_system
                 .received_signal_on(&Frequency::Control)
-                .map_or(BLACK_SIGNAL_QUALITY, |(_, signal)| *signal.quality())
+                .map_or(BLACK_SIGNAL_STRENGTH, |(_, signal)| *signal.strength())
         );
     }
 
@@ -588,11 +588,11 @@ impl Position for Device {
 
 #[cfg(test)]
 mod tests {
-    use systems::TXModuleType;
-
     use crate::backend::device::systems::{RXModule, TXModule};
     use crate::backend::mathphysics::Megahertz;
-    use crate::backend::signal::{GREEN_SIGNAL_QUALITY, RED_SIGNAL_QUALITY};
+    use crate::backend::signal::{
+        GREEN_SIGNAL_STRENGTH, MAX_RED_SIGNAL_STRENGTH
+    };
 
     use super::*;
 
@@ -609,24 +609,24 @@ mod tests {
     }
 
     fn control_tx_module(radius: Meter) -> TXModule {
-        let tx_signal_quality  = SignalQuality::from_area_radius(
+        let tx_signal_strength  = SignalStrength::from_area_radius(
             radius, 
             Frequency::Control as Megahertz
         );
-        let tx_signal_quality_map = FreqToQualityMap::from([
-            (Frequency::Control, tx_signal_quality)
+        let tx_signal_strength_map = FreqToStrengthMap::from([
+            (Frequency::Control, tx_signal_strength)
         ]);
 
-        TXModule::new(TXModuleType::Strength, tx_signal_quality_map)
+        TXModule::new(tx_signal_strength_map)
     }
 
     fn rx_module() -> RXModule {
-        let max_rx_signal_quality_map = FreqToQualityMap::from([
-            (Frequency::GPS, GREEN_SIGNAL_QUALITY),
-            (Frequency::Control, GREEN_SIGNAL_QUALITY)
+        let max_rx_signal_strength_map = FreqToStrengthMap::from([
+            (Frequency::GPS, GREEN_SIGNAL_STRENGTH),
+            (Frequency::Control, GREEN_SIGNAL_STRENGTH)
         ]);
 
-        RXModule::new(max_rx_signal_quality_map)
+        RXModule::new(max_rx_signal_strength_map)
     }
      
     fn drone_movement_system() -> MovementSystem {
@@ -744,7 +744,7 @@ mod tests {
                 device_without_signal.id(),
                 Data::GPS(*device_without_signal.position()), 
                 Frequency::GPS,
-                RED_SIGNAL_QUALITY,
+                MAX_RED_SIGNAL_STRENGTH,
             );
 
             let _ = device_without_signal.receive_signal(gps_signal, time);
@@ -784,7 +784,7 @@ mod tests {
                 device_without_signal.id(),
                 Data::GPS(*device_without_signal.position()), 
                 Frequency::GPS,
-                RED_SIGNAL_QUALITY,
+                MAX_RED_SIGNAL_STRENGTH,
             );
 
             let _ = device_without_signal.receive_signal(gps_signal, time);
@@ -835,7 +835,7 @@ mod tests {
                 device_without_signal.id(),
                 Data::GPS(*device_without_signal.position()), 
                 Frequency::GPS,
-                RED_SIGNAL_QUALITY,
+                MAX_RED_SIGNAL_STRENGTH,
             );
             
             send_signal_until_it_is_received(
@@ -868,7 +868,7 @@ mod tests {
                 device_without_signal.id(),
                 Data::GPS(*device_without_signal.position()), 
                 Frequency::GPS,
-                RED_SIGNAL_QUALITY,
+                MAX_RED_SIGNAL_STRENGTH,
             );
 
             let _ = device_without_signal.receive_signal(gps_signal, time);
@@ -960,7 +960,7 @@ mod tests {
                 device.id(),
                 Data::GPS(*device.position()), 
                 Frequency::GPS,
-                RED_SIGNAL_QUALITY,
+                MAX_RED_SIGNAL_STRENGTH,
             );
             
             send_signal_until_it_is_received(&mut device, gps_signal, time);
@@ -1008,7 +1008,7 @@ mod tests {
             device.id(),
             Data::SetTask(task),
             Frequency::Control, 
-            RED_SIGNAL_QUALITY, 
+            MAX_RED_SIGNAL_STRENGTH, 
         );
         let time = 0;
 
@@ -1037,7 +1037,7 @@ mod tests {
             device.id(),
             Data::GPS(gps_position), 
             Frequency::GPS,
-            RED_SIGNAL_QUALITY,
+            MAX_RED_SIGNAL_STRENGTH,
         );
         let time = 0;
 
@@ -1062,7 +1062,7 @@ mod tests {
             BROADCAST_ID,
             Data::SetTask(task), 
             Frequency::Control, 
-            RED_SIGNAL_QUALITY, 
+            MAX_RED_SIGNAL_STRENGTH, 
         );
         let time = 0;
 
@@ -1085,7 +1085,7 @@ mod tests {
             device.id() + 1,
             Data::SetTask(undefined_task), 
             Frequency::Control, 
-            RED_SIGNAL_QUALITY, 
+            MAX_RED_SIGNAL_STRENGTH, 
         );
 
         assert!(
@@ -1110,7 +1110,7 @@ mod tests {
             BROADCAST_ID,
             Data::Malware(malware), 
             Frequency::Control, 
-            RED_SIGNAL_QUALITY, 
+            MAX_RED_SIGNAL_STRENGTH, 
         );
         let time = 0;
 
@@ -1136,7 +1136,7 @@ mod tests {
             BROADCAST_ID,
             Data::Malware(malware), 
             Frequency::Control,
-            RED_SIGNAL_QUALITY, 
+            MAX_RED_SIGNAL_STRENGTH, 
         );
         let time = 0;
 

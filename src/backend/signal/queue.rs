@@ -97,7 +97,7 @@ impl SignalQueue {
 mod tests {
     use crate::backend::device::DeviceId;
     use crate::backend::mathphysics::Frequency;
-    use crate::backend::signal::{Data, BLACK_SIGNAL_QUALITY};
+    use crate::backend::signal::{Data, BLACK_SIGNAL_STRENGTH};
 
     use super::*;
 
@@ -111,21 +111,21 @@ mod tests {
             SOME_ID,
             Data::Noise,
             Frequency::Control,
-            BLACK_SIGNAL_QUALITY,
+            BLACK_SIGNAL_STRENGTH,
         );
         let signal2 = Signal::new(
             SOME_ID,
             SOME_ID,
             Data::Noise,
             Frequency::Control,
-            BLACK_SIGNAL_QUALITY,
+            BLACK_SIGNAL_STRENGTH,
         );
         let signal3 = Signal::new(
             SOME_ID,
             SOME_ID,
             Data::Noise,
             Frequency::Control,
-            BLACK_SIGNAL_QUALITY,
+            BLACK_SIGNAL_STRENGTH,
         );
 
         vec![

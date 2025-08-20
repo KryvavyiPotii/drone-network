@@ -2,7 +2,6 @@ use std::path::{Path, PathBuf};
 
 use crate::backend::connections::Topology;
 use crate::backend::device::SignalLossResponse;
-use crate::backend::device::systems::TXModuleType;
 use crate::backend::mathphysics::Millisecond;
 
 use crate::frontend::renderer::{
@@ -41,7 +40,6 @@ impl GeneralConfig {
 
 #[derive(Default)]
 pub struct ModelConfig {
-    tx_module_type: TXModuleType,
     signal_loss_response: SignalLossResponse,
     topology: Topology,
     drone_count: usize,
@@ -51,14 +49,12 @@ pub struct ModelConfig {
 impl ModelConfig {
     #[must_use]
     pub fn new(
-        tx_module_type: TXModuleType,
         signal_loss_response: SignalLossResponse,
         topology: Topology,
         drone_count: usize,
         delay_multiplier: f32,
     ) -> Self {
         Self {
-            tx_module_type,
             signal_loss_response,
             topology,
             drone_count,
@@ -66,11 +62,6 @@ impl ModelConfig {
         }
     }
 
-    #[must_use]
-    pub fn tx_module_type(&self) -> TXModuleType {
-        self.tx_module_type
-    }
-    
     #[must_use]
     pub fn signal_loss_response(&self) -> SignalLossResponse {
         self.signal_loss_response

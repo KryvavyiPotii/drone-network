@@ -2,10 +2,10 @@ use serde::{Deserialize, Serialize};
 use thiserror::Error;
 
 use crate::backend::mathphysics::{Frequency, Megahertz, Meter, Millisecond};
-use crate::backend::signal::{FreqToQualityMap, Signal, SignalQuality};
+use crate::backend::signal::{FreqToStrengthMap, Signal, SignalStrength};
 
 pub use rx::{SignalRecord, RXError, RXModule};
-pub use tx::{TXModule, TXModuleType};
+pub use tx::TXModule;
 
 
 mod rx;
@@ -38,36 +38,36 @@ impl TRXSystem {
     }
 
     #[must_use]
-    pub fn tx_signal_quality_map(&self) -> &FreqToQualityMap {
-        self.tx_module.signal_quality_map() 
+    pub fn tx_signal_strength_map(&self) -> &FreqToStrengthMap {
+        self.tx_module.signal_strength_map() 
     }
 
     #[must_use]
-    pub fn tx_signal_quality_on(
+    pub fn tx_signal_strength_on(
         &self, 
         frequency: &Frequency
-    ) -> Option<&SignalQuality> {
-        self.tx_module.signal_quality_on(frequency) 
+    ) -> Option<&SignalStrength> {
+        self.tx_module.signal_strength_on(frequency) 
     }
 
     #[must_use]
     pub fn area_radius_on(&self, frequency: Frequency) -> Meter {
         self.tx_module
-            .signal_quality_on(&frequency)
+            .signal_strength_on(&frequency)
             .map_or(
                 0.0, 
-                |tx_signal_quality| 
-                    tx_signal_quality.area_radius_on(frequency as Megahertz)
+                |tx_signal_strength| 
+                    tx_signal_strength.area_radius_on(frequency as Megahertz)
             )
     }
 
     #[must_use]
-    pub fn tx_signal_quality_at(
+    pub fn tx_signal_strength_at(
         &self, 
         distance: Meter,
         frequency: Frequency,
-    ) -> Option<SignalQuality> {
-        self.tx_module.signal_quality_at(distance, frequency)
+    ) -> Option<SignalStrength> {
+        self.tx_module.signal_strength_at(distance, frequency)
     }
     
     #[must_use]
@@ -76,7 +76,7 @@ impl TRXSystem {
         distance: Meter, 
         frequency: Frequency
     ) -> bool {
-        self.tx_module.signal_quality_at(distance, frequency).is_some()
+        self.tx_module.signal_strength_at(distance, frequency).is_some()
     }
    
     #[must_use]

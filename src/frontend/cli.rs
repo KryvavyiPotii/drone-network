@@ -10,13 +10,13 @@ use args::{
     ARG_DRONE_COUNT, ARG_EXPERIMENT_TITLE, ARG_EW_FREQUENCY, 
     ARG_ATTACKER_RADIUS, ARG_JSON_INPUT, ARG_MALWARE_TYPE, ARG_NO_PLOT, 
     ARG_NETWORK_TOPOLOGY, ARG_JSON_OUTPUT, ARG_PLOT_CAPTION, ARG_PLOT_HEIGHT, 
-    ARG_PLOT_WIDTH, ARG_SIG_LOSS_RESP, ARG_SIM_TIME, ARG_TX_MODULE, ARG_VERBOSE, 
+    ARG_PLOT_WIDTH, ARG_SIG_LOSS_RESP, ARG_SIM_TIME, ARG_VERBOSE, 
     DEFAULT_CAMERA_PITCH, DEFAULT_CAMERA_YAW, DEFAULT_DELAY_MULTIPLIER, 
     DEFAULT_DRONE_COUNT, DEFAULT_PLOT_CAPTION, DEFAULT_PLOT_HEIGHT, 
     DEFAULT_PLOT_WIDTH, DEFAULT_SIM_TIME, EXP_CUSTOM, EXP_EWD, EXP_GPS_SPOOFING, 
     EXP_MALWARE_INFECTION, EXP_MOVEMENT, EXP_SIGNAL_LOSS, EW_CONTROL, EW_GPS, 
     MAL_DOS, MAL_INDICATOR, SLR_ASCEND, SLR_IGNORE, SLR_HOVER, SLR_RTH, 
-    SLR_SHUTDOWN, TOPOLOGY_MESH, TOPOLOGY_STAR, TX_LEVEL, TX_STRENGTH
+    SLR_SHUTDOWN, TOPOLOGY_MESH, TOPOLOGY_STAR,
 };
 
 
@@ -29,7 +29,6 @@ pub fn cli() {
         .about("Models drone networks.")
         .args([
             arg_experiment_title(),
-            arg_tx_module_type(),
             arg_signal_loss_response(),
             arg_topology(),
             arg_drone_count(),
@@ -70,20 +69,6 @@ fn arg_experiment_title() -> Arg {
             EXP_SIGNAL_LOSS,
         ])
         .help("Choose experiment title")
-}
-
-fn arg_tx_module_type() -> Arg {
-    Arg::new(ARG_TX_MODULE)
-        .long("tx")
-        .value_parser([TX_LEVEL, TX_STRENGTH])
-        .required_if_eq_any([
-            (ARG_EXPERIMENT_TITLE, EXP_EWD),
-            (ARG_EXPERIMENT_TITLE, EXP_GPS_SPOOFING),
-            (ARG_EXPERIMENT_TITLE, EXP_MALWARE_INFECTION),
-            (ARG_EXPERIMENT_TITLE, EXP_MOVEMENT),
-            (ARG_EXPERIMENT_TITLE, EXP_SIGNAL_LOSS),
-        ])
-        .help("Choose TX system type")
 }
 
 fn arg_signal_loss_response() -> Arg {
@@ -190,7 +175,6 @@ fn arg_json_input() -> Arg {
             ARG_MALWARE_TYPE,
             ARG_NETWORK_TOPOLOGY,
             ARG_SIG_LOSS_RESP,
-            ARG_TX_MODULE,
         ])
         .help(
             format!(

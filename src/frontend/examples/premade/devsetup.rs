@@ -7,7 +7,6 @@ use crate::backend::device::{
 };
 use crate::backend::device::systems::{
     MovementSystem, PowerSystem, RXModule, SecuritySystem, TRXSystem, TXModule, 
-    TXModuleType
 };
 use crate::backend::malware::Malware;
 use crate::backend::mathphysics::{
@@ -15,7 +14,7 @@ use crate::backend::mathphysics::{
 };
 use crate::backend::networkmodel::gps::GPS;
 use crate::backend::signal::{
-    FreqToQualityMap, SignalQuality, GREEN_SIGNAL_QUALITY
+    FreqToStrengthMap, SignalStrength, GREEN_SIGNAL_STRENGTH
 };
 use crate::backend::task::{Scenario, Task};
 
@@ -38,17 +37,15 @@ pub fn create_drone_vec(
     drone_count: usize, 
     network_position: &NetworkPosition,
     malware: Option<Malware>,
-    tx_module_type: TXModuleType,
     signal_loss_response: SignalLossResponse,
     tx_control_area_radius: Meter,
-    max_gps_rx_signal_quality: SignalQuality,
+    max_gps_rx_signal_strength: SignalStrength,
 ) -> Vec<Device> {
     let power_system    = device_power_system();
     let movement_system = device_movement_system();
     let trx_system      = drone_trx_system(
-        tx_module_type, 
         tx_control_area_radius,
-        max_gps_rx_signal_quality
+        max_gps_rx_signal_strength
     );
     let patches = match malware {
         Some(malware) => vec![malware],
@@ -96,67 +93,63 @@ fn generate_drone_position_in_rect_prism(
 }
 
 pub fn cc_trx_system(
-    tx_module_type: TXModuleType, 
     tx_control_area_radius: Meter
 ) -> TRXSystem {
     TRXSystem::new(
-        tx_module(tx_module_type, Frequency::Control, tx_control_area_radius), 
-        rx_module(GREEN_SIGNAL_QUALITY)
+        tx_module(Frequency::Control, tx_control_area_radius), 
+        rx_module(GREEN_SIGNAL_STRENGTH)
     )
 }
 
 pub fn drone_trx_system(
-    tx_module_type: TXModuleType, 
     tx_control_area_radius: Meter,
-    max_gps_rx_signal_quality: SignalQuality
+    max_gps_rx_signal_strength: SignalStrength
 ) -> TRXSystem {
     TRXSystem::new( 
-        tx_module(tx_module_type, Frequency::Control, tx_control_area_radius), 
-        rx_module(max_gps_rx_signal_quality),
+        tx_module(Frequency::Control, tx_control_area_radius), 
+        rx_module(max_gps_rx_signal_strength),
     )
 }
  
 pub fn ewd_trx_system(
-    tx_module_type: TXModuleType,
     frequency: Frequency,
     suppression_area_radius: Meter
 ) -> TRXSystem {
     TRXSystem::new(  
-        tx_module(tx_module_type, frequency, suppression_area_radius), 
+        tx_module(frequency, suppression_area_radius), 
         RXModule::default()
     )
 }
 
-fn gps_trx_system(tx_module_type: TXModuleType) -> TRXSystem {
+fn gps_trx_system() -> TRXSystem {
     TRXSystem::new( 
-        tx_module(tx_module_type, Frequency::GPS, GPS_TX_RADIUS), 
+        tx_module(Frequency::GPS, GPS_TX_RADIUS), 
         RXModule::default()
     )
 }
 
 pub fn tx_module(
-    tx_module_type: TXModuleType, 
     frequency: Frequency, 
     tx_area_radius: Meter
 ) -> TXModule {
-    let tx_signal_quality = SignalQuality::from_area_radius(
+    let tx_signal_strength = SignalStrength::from_area_radius(
         tx_area_radius, 
         Frequency::Control as Megahertz
     );
-    let tx_signal_qualities = FreqToQualityMap::from([
-        (frequency, tx_signal_quality)
+    let tx_signal_strengths = FreqToStrengthMap::from([
+        (frequency, tx_signal_strength)
     ]);
 
-    TXModule::new(tx_module_type, tx_signal_qualities)
+    TXModule::new(tx_signal_strengths)
 }
 
-pub fn rx_module(max_gps_rx_signal_quality: SignalQuality) -> RXModule {
-    let max_rx_signal_qualities = FreqToQualityMap::from([
-        (Frequency::Control, SignalQuality::from(10_000.0)),
-        (Frequency::GPS, max_gps_rx_signal_quality)
+pub fn rx_module(max_gps_rx_signal_strength: SignalStrength) -> RXModule {
+    let max_rx_signal_strengths = FreqToStrengthMap::from([
+        (Frequency::Control, SignalStrength::new(10_000.0)),
+        (Frequency::GPS, max_gps_rx_signal_strength)
     ]);
 
-    RXModule::new(max_rx_signal_qualities)
+    RXModule::new(max_rx_signal_strengths)
 }
 
 pub fn device_power_system() -> PowerSystem {
@@ -178,12 +171,12 @@ pub fn default_network_position(network_origin: Point3D) -> NetworkPosition {
     )
 }
 
-pub fn default_gps(tx_module_type: TXModuleType) -> GPS {
+pub fn default_gps() -> GPS {
     let device = DeviceBuilder::new()
         .set_real_position(DEFAULT_GPS_POSITION_IN_METERS)
         .set_signal_loss_response(SignalLossResponse::Ignore)
         .set_power_system(device_power_system())
-        .set_trx_system(gps_trx_system(tx_module_type))
+        .set_trx_system(gps_trx_system())
         .build();
 
     GPS::new(device)

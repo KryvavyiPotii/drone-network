@@ -7,7 +7,10 @@ use crate::backend::device::Device;
 use crate::backend::mathphysics::{Frequency, Meter, Point3D, Position};
 use crate::backend::networkmodel::NetworkModel;
 use crate::backend::networkmodel::attack::{AttackerDevice, AttackType};
-use crate::backend::signal::{SignalLevel, SignalQuality, BLACK_SIGNAL_QUALITY};
+use crate::backend::signal::{
+    SignalStrength, BLACK_SIGNAL_STRENGTH, MAX_BLACK_SIGNAL_STRENGTH, 
+    MAX_RED_SIGNAL_STRENGTH, MAX_YELLOW_SIGNAL_STRENGTH
+};
 
 use super::{
     DeviceColoring, Pixel, PlottersUnit, PlottersPoint3D, PlotResolution, 
@@ -26,14 +29,14 @@ const PLOTTERS_COMMAND_CENTER_COLOR: RGBColor = GREEN;
 type PlottersCircle = Circle<(PlottersUnit, PlottersUnit, PlottersUnit), Pixel>; 
 
 
-fn min_signal_quality(
-    signal_quality1: SignalQuality,
-    signal_quality2: SignalQuality
-) -> SignalQuality {
-    if signal_quality1 < signal_quality2 {
-        signal_quality1
+fn min_signal_strength(
+    signal_strength1: SignalStrength,
+    signal_strength2: SignalStrength
+) -> SignalStrength {
+    if signal_strength1 < signal_strength2 {
+        signal_strength1
     } else {
-        signal_quality2
+        signal_strength2
     }
 }
 
@@ -90,8 +93,8 @@ fn device_color(
         DeviceColoring::Infection            => 
             color_by_infection(device.is_infected()),
         DeviceColoring::ControlConnection    => 
-            color_by_signal_quality(
-                device_control_signal_quality(network_model, device)
+            color_by_signal_strength(
+                device_control_signal_strength(network_model, device)
             ),
         DeviceColoring::SingleColor(r, g, b) => RGBColor(r, g, b),
     }
@@ -105,10 +108,10 @@ fn color_by_infection(infected: bool) -> RGBColor {
     }
 }
 
-fn device_control_signal_quality(
+fn device_control_signal_strength(
     network_model: &NetworkModel,
     device: &Device,
-) -> SignalQuality {
+) -> SignalStrength {
     let Ok((_, path)) = network_model
         .connections()
         .find_shortest_path_from_to(
@@ -116,23 +119,23 @@ fn device_control_signal_quality(
             device.id()
         )
     else {
-        return BLACK_SIGNAL_QUALITY;
+        return BLACK_SIGNAL_STRENGTH;
     };
 
-    let Some((_, mut min_control_signal_quality)) = network_model
+    let Some((_, mut min_control_signal_strength)) = network_model
         .connections()
         .graph_map()
         .edge_weight(path[0], path[1])
         .copied()
     else {
-        return BLACK_SIGNAL_QUALITY;
+        return BLACK_SIGNAL_STRENGTH;
     };
 
     for i in 2..path.len() {
         let tx_id = path[i - 1];
         let rx_id = path[i];
         
-        let Some((_, control_signal_quality)) = network_model
+        let Some((_, control_signal_strength)) = network_model
             .connections()
             .graph_map()
             .edge_weight(tx_id, rx_id)
@@ -140,21 +143,24 @@ fn device_control_signal_quality(
             break;
         };
 
-        min_control_signal_quality = min_signal_quality(
-            min_control_signal_quality,
-            *control_signal_quality,
+        min_control_signal_strength = min_signal_strength(
+            min_control_signal_strength,
+            *control_signal_strength,
         );
     }
 
-    min_control_signal_quality
+    min_control_signal_strength
 }
 
-fn color_by_signal_quality(signal_quality: SignalQuality) -> RGBColor {
-    match signal_quality.level() {
-        SignalLevel::Green  => GREEN_400,
-        SignalLevel::Yellow => YELLOW_700,
-        SignalLevel::Red    => RED_400,
-        SignalLevel::Black  => BLACK,
+fn color_by_signal_strength(signal_strength: SignalStrength) -> RGBColor {
+    if signal_strength > MAX_YELLOW_SIGNAL_STRENGTH {
+        GREEN_400 
+    } else if signal_strength > MAX_RED_SIGNAL_STRENGTH {
+        YELLOW_700
+    } else if signal_strength > MAX_BLACK_SIGNAL_STRENGTH {
+        RED_400
+    } else {
+        BLACK
     }
 }
 
@@ -173,7 +179,7 @@ pub fn attacker_device_primitive_on_all_frequencies(
 ) -> Vec<PlottersCircle> {
     attacker_device
         .device()
-        .tx_signal_quality_map()
+        .tx_signal_strength_map()
         .keys()
         .map(|frequency|
             attacker_device_primitive(

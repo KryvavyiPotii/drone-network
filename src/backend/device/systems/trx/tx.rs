@@ -1,81 +1,46 @@
 use serde::{Deserialize, Serialize};
 
 use crate::backend::mathphysics::{Frequency, Megahertz, Meter};
-use crate::backend::signal::{FreqToQualityMap, SignalQuality};
-
-
-#[derive(Clone, Copy, Debug, Default, PartialEq, Serialize, Deserialize)]
-pub enum TXModuleType {
-    Level,
-    #[default]
-    Strength,
-}
+use crate::backend::signal::{FreqToStrengthMap, SignalStrength};
 
 
 // By default we create a non-functioning `TXModule` based on signal strength.
 #[derive(Clone, Debug, Default, PartialEq, Serialize, Deserialize)]
 pub struct TXModule {
-    module_type: TXModuleType, 
-    signal_quality_map: FreqToQualityMap
+    signal_strength_map: FreqToStrengthMap
 }
 
 impl TXModule {
     #[must_use]
     pub fn new(
-        module_type: TXModuleType, 
-        signal_quality_map: FreqToQualityMap
+        signal_strength_map: FreqToStrengthMap
     ) -> Self {
-        Self { module_type, signal_quality_map }
+        Self { signal_strength_map }
     }
 
     #[must_use]
-    pub fn signal_quality_map(&self) -> &FreqToQualityMap {
-        &self.signal_quality_map
+    pub fn signal_strength_map(&self) -> &FreqToStrengthMap {
+        &self.signal_strength_map
     }
 
     #[must_use]
-    pub fn signal_quality_on(
+    pub fn signal_strength_on(
         &self, 
         frequency: &Frequency
-    ) -> Option<&SignalQuality> {
-        self.signal_quality_map.get(frequency)
+    ) -> Option<&SignalStrength> {
+        self.signal_strength_map.get(frequency)
     }
     
     #[must_use]
-    pub fn signal_quality_at(
-        &self, 
-        distance: Meter,
-        frequency: Frequency,
-    ) -> Option<SignalQuality> {
-        match self.module_type {
-            TXModuleType::Level    => 
-                self.signal_quality_at_by_level(distance, frequency),
-            TXModuleType::Strength => 
-                self.signal_quality_at_by_strength(distance, frequency),
-        }
-    }
-    
-    fn signal_quality_at_by_level(
+    pub fn signal_strength_at(
         &self,
         distance: Meter,
         frequency: Frequency,
-    ) -> Option<SignalQuality> {
+    ) -> Option<SignalStrength> {
         self
-            .signal_quality_on(&frequency)
-            .map(|signal_quality| 
-                signal_quality.at_by_level(frequency as Megahertz, distance)
-            )
-    }
-    
-    fn signal_quality_at_by_strength(
-        &self,
-        distance: Meter,
-        frequency: Frequency,
-    ) -> Option<SignalQuality> {
-        self
-            .signal_quality_on(&frequency)
-            .map(|signal_quality| 
-                signal_quality.at_by_strength(frequency as Megahertz, distance)
+            .signal_strength_on(&frequency)
+            .map(|signal_strength| 
+                signal_strength.at(frequency as Megahertz, distance)
             )
     }
 }

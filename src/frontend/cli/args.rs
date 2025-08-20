@@ -7,7 +7,6 @@ use log::LevelFilter;
 
 use crate::backend::connections::Topology;
 use crate::backend::device::SignalLossResponse;
-use crate::backend::device::systems::TXModuleType;
 use crate::backend::malware::{Malware, MalwareType};
 use crate::backend::mathphysics::{Frequency, Millisecond, Point3D};
 use crate::frontend::{MALWARE_INFECTION_DELAY, MALWARE_SPREAD_DELAY};
@@ -38,7 +37,6 @@ pub const ARG_PLOT_HEIGHT: &str      = "plot height";
 pub const ARG_PLOT_WIDTH: &str       = "plot width";
 pub const ARG_SIG_LOSS_RESP: &str    = "control signal loss response"; 
 pub const ARG_SIM_TIME: &str         = "simulation time";
-pub const ARG_TX_MODULE: &str        = "tx module type";
 pub const ARG_VERBOSE: &str          = "verbose logs";
 
 pub const EXP_CUSTOM: &str            = "custom";
@@ -62,9 +60,6 @@ pub const SLR_SHUTDOWN: &str = "shutdown";
 
 pub const TOPOLOGY_MESH: &str = "mesh";
 pub const TOPOLOGY_STAR: &str = "star";
-
-pub const TX_LEVEL: &str    = "lvl";
-pub const TX_STRENGTH: &str = "str";
 
 pub const DEFAULT_CAMERA_PITCH: &str     = "0.15";
 pub const DEFAULT_CAMERA_YAW: &str       = "0.5";
@@ -122,7 +117,6 @@ pub fn handle_arguments(matches: &ArgMatches) {
 
 fn model_config(matches: &ArgMatches) -> ModelConfig {
     ModelConfig::new(
-        trx_system_type(matches), 
         signal_loss_response(matches),
         topology(matches),
         drone_count(matches),
@@ -191,18 +185,6 @@ fn signal_loss_response(matches: &ArgMatches) -> SignalLossResponse {
         SLR_RTH      => SignalLossResponse::ReturnToHome(Point3D::default()),
         SLR_SHUTDOWN => SignalLossResponse::Shutdown,
         _            => panic!("Wrong signal loss response")
-    }
-}
-
-fn trx_system_type(matches: &ArgMatches) -> TXModuleType {
-    match matches
-        .get_one::<String>(ARG_TX_MODULE) 
-        .unwrap()
-        .as_str() 
-    {
-        TX_LEVEL    => TXModuleType::Level,
-        TX_STRENGTH => TXModuleType::Strength,
-        _           => panic!("Wrong TX module type")
     }
 }
 

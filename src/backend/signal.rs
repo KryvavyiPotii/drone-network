@@ -8,15 +8,15 @@ use super::mathphysics::{Frequency, Point3D};
 use super::task::Task;
 
 
-pub use quality::*;
+pub use strength::*;
 pub use queue::*;
 
 
-pub mod quality;
+pub mod strength;
 pub mod queue;
 
 
-pub type FreqToQualityMap = HashMap<Frequency, SignalQuality>;
+pub type FreqToStrengthMap = HashMap<Frequency, SignalStrength>;
 
 
 #[derive(Clone, Copy, Debug, PartialEq, Serialize, Deserialize)]
@@ -36,7 +36,7 @@ pub struct Signal {
     destination_id: DeviceId,
     data: Data,
     frequency: Frequency,
-    quality: SignalQuality,
+    strength: SignalStrength,
 }
 
 impl Signal {
@@ -46,14 +46,14 @@ impl Signal {
         destination_id: DeviceId,
         data: Data,
         frequency: Frequency,
-        quality: SignalQuality,
+        strength: SignalStrength,
     ) -> Self {
         Self { 
             source_id,
             destination_id,
             data,
             frequency,
-            quality, 
+            strength, 
         }
     }
 
@@ -83,8 +83,8 @@ impl Signal {
     }
 
     #[must_use]
-    pub fn quality(&self) -> &SignalQuality {
-        &self.quality
+    pub fn strength(&self) -> &SignalStrength {
+        &self.strength
     }
     
     #[must_use]

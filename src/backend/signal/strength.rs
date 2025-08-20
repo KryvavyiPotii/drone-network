@@ -6,6 +6,7 @@ use crate::backend::mathphysics::{wave_length_in_meters, Megahertz, Meter};
 
 pub const GREEN_SIGNAL_STRENGTH_VALUE: StrengthValue = 100.0;
 
+pub const BLACK_SIGNAL_STRENGTH: SignalStrength      = SignalStrength(0.0);
 pub const MAX_BLACK_SIGNAL_STRENGTH: SignalStrength  = SignalStrength(1.0);
 pub const MAX_RED_SIGNAL_STRENGTH: SignalStrength    = SignalStrength(
     GREEN_SIGNAL_STRENGTH_VALUE * 0.2
@@ -37,11 +38,6 @@ impl SignalStrength {
     pub fn new(value: StrengthValue) -> Self {
         Self(value)
     }
-
-    #[must_use]
-    pub fn value(&self) -> StrengthValue {
-        self.0
-    }
     
     #[must_use]
     pub fn from_area_radius(area_radius: Meter, frequency: Megahertz) -> Self {
@@ -64,8 +60,8 @@ impl SignalStrength {
     
     #[must_use]
     pub fn at(&self, frequency: Megahertz, distance: Meter) -> Self {
-        if *self <= MAX_BLACK_SIGNAL_STRENGTH {
-            return Self::default();
+        if self.is_black() {
+            return BLACK_SIGNAL_STRENGTH;
         }
 
         let wave_length = wave_length_in_meters(frequency);
@@ -84,7 +80,7 @@ impl SignalStrength {
     
     #[must_use]
     pub fn area_radius_on(&self, frequency: Megahertz) -> Meter {
-        if *self <= MAX_BLACK_SIGNAL_STRENGTH {
+        if self.is_black() {
             return 0.0;
         }
        
@@ -99,6 +95,11 @@ impl SignalStrength {
         // We do not use division by MAX_BLACK_SIGNAL_STRENGTH because it 
         // is equal to 1.0.
         wave_length * (self.0 * SIGNAL_STRENGTH_SCALING).sqrt() 
+    }
+
+    #[must_use]
+    pub fn is_black(&self) -> bool {
+        *self <= MAX_BLACK_SIGNAL_STRENGTH
     }
 }
 

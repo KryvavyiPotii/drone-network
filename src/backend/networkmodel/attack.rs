@@ -27,14 +27,14 @@ pub fn add_malware_signals_to_queue(
     current_time: Millisecond,
     delay_multiplier: f32,
 ) {
-    let Some(signal_quality) = source_device.tx_signal_quality_at(
+    let Some(signal_strength) = source_device.tx_signal_strength_at(
         destination_device, 
         Frequency::Control
     ) else {
         return;
     };
 
-    if signal_quality.is_black() {
+    if signal_strength.is_black() {
         return;
     }
     
@@ -55,7 +55,7 @@ pub fn add_malware_signals_to_queue(
             destination_device.id(),
             Data::Malware(*malware), 
             Frequency::Control, 
-            signal_quality
+            signal_strength
         );
 
         signal_queue.add_entry(
@@ -159,7 +159,7 @@ impl AttackerDevice {
         target_device: &Device,
     ) -> Result<Vec<Signal>, AttackError> {
         let signals_to_send: Vec<Signal> = self.device
-            .tx_signal_quality_map()
+            .tx_signal_strength_map()
             .keys() 
             .filter_map(|frequency| {
                 self.device.create_signal_for(

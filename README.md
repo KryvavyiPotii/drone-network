@@ -24,8 +24,6 @@ Usage: drone_network-x64-linux [OPTIONS] --slr <control signal loss response>
 Options:
   -x <experiment title>
           Choose experiment title [possible values: custom, ewd, gpsspoof, malware, move, signalloss]
-      --tx <tx module type>
-          Choose TX system type [possible values: lvl, str]
       --slr <control signal loss response>
           Choose control signal loss response (except "signalloss" experiment) [possible values: ascend, ignore, hover, rth, shutdown]
       --topology <network topology>
